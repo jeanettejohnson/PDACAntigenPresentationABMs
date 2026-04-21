@@ -1,0 +1,6 @@
+[submodule "PhysiCell"]
+	path = PhysiCell
+	url = https://github.com/jeanettejohnson/PhysiCell.git
+[submodule "PhysiCell-Studio"]
+	path = PhysiCell-Studio
+	url = https://github.com/jeanettejohnson/PhysiCell-Studio.git

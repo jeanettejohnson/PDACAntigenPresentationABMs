@@ -1,7 +1,8 @@
+
+
 xml_path = icCellsPath("CAF", "annulus", 1, "inner_radius")
 
  dv = DiscreteVariation(xml_path, [0.0; 200.0; 0.0; 200.0; 0.0; 200.0])
-
 
 dv_caf_inner = DiscreteVariation(xml_path, [0.0; 200.0; 0.0; 200.0; 0.0; 200.0])
 
@@ -37,4 +38,4 @@ for f in ic_cell_folder_names
         ic_cells_folder=f, 
         rulesets_collection_folder = "rulesets_collection_1")
     out = run(inputs, cv; n_replicates=3)
-end
+end  

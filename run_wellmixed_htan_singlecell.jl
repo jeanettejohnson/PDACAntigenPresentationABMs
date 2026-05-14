@@ -9,6 +9,8 @@ initializeModelManager(
 )
 
 
+deleteSimulationsByStatus(["Queued"]; user_check=false)
+
 df = CSV.read(expanduser("~/assignmentsummary_HTAN_singlecell.csv"), DataFrame)
 
 inputs = InputFolders(
@@ -56,6 +58,6 @@ for row in eachrow(df)
     cv = CoVariation(dv_caf, dv_cd4, dv_cd8, dv_treg, dv_apcaf, dv_epithelial, dv_epithelial_class1, dv_epithelial_class1_class2, dv_epithelial_class2, dv_mesenchymal, dv_mesenchymal_class1, dv_mesenchymal_class1_class2, dv_mesenchymal_class2, dv_pdac_unspecified)
 
     println("Running $sample  CAF=$caf_count  CD4=$cd4_count  CD8=$cd8_count  Treg=$treg_count Epithelial=$epithelial_count  Mesenchymal=$mesenchymal_count  PDAC_unspecified=$pdac_unspecified_count")
-    monad = createTrial(inputs, cv; n_replicates=1, use_previous=false)
+    monad = createTrial(inputs, cv; n_replicates=1, use_previous=true)
     PhysiCellModelManager.run(monad)
 end

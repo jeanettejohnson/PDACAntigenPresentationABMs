@@ -4,8 +4,9 @@ from sklearn import preprocessing
 from sklearn.preprocessing import MinMaxScaler
 
 
-image = pd.read_csv("/Users/jeanette.johnson/Downloads/ROI1Collagen.csv")
+image = pd.read_csv("/Users/jeanette.johnson/Downloads/JHH317_ROI2Collagen_x2.csv")
 
+image.index = ["x", "y", "ecm"]
 
 scaler = MinMaxScaler()
 
@@ -51,4 +52,4 @@ coordarray = np.array(spatial_base_coords)
 #coordarray = np.rot90(coordarray, k=2)
 spatial_base_coords = pd.DataFrame(np.array(coordarray))
 
-spatial_base_coords.to_csv("/Users/jeanette.johnson/OneDrive - University of Maryland School of Medicine/JHH387_multipage_ROIs/ROI001_ROI_001/ROI1Collagen.csv")
+spatial_base_coords.to_csv("/Users/jeanette.johnson/OneDrive - University of Maryland School of Medicine/JHH_IMC/JHH317/ROI2Collagen_x2.csv")

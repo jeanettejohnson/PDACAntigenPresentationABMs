@@ -1,0 +1,25 @@
+# pcmm generated databases and variation files
+data/pcmm.db
+data/inputs/**/*.db
+data/inputs/**/base_rulesets.xml
+data/inputs/**/ic_cell_variations/
+data/inputs/**/ic_ecm_variations/
+data/inputs/**/config_variations/
+data/inputs/**/rulesets_collection_variations/
+data/inputs/**/intracellular_variations/
+
+# Simulation outputs
+data/outputs/simulations/
+data/outputs/monads/
+data/outputs/samplings/
+
+# PhysiCell build artifacts
+PhysiCell/*.o
+PhysiCell/project
+PhysiCell/BioFVM/*.o
+PhysiCell/core/*.o
+PhysiCell/modules/*.o
+PhysiCell/custom_modules/*.o
+
+# macOS
+.DS_Store

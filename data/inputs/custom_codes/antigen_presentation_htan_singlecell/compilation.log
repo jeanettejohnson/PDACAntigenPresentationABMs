@@ -1,0 +1,23 @@
+g++-15 -march=native -O3 -fomit-frame-pointer -fopenmp -m64 -std=c++11 -c ./core/PhysiCell_phenotype.cpp
+g++-15 -march=native -O3 -fomit-frame-pointer -fopenmp -m64 -std=c++11 -c ./core/PhysiCell_cell_container.cpp
+g++-15 -march=native -O3 -fomit-frame-pointer -fopenmp -m64 -std=c++11 -c ./core/PhysiCell_standard_models.cpp
+g++-15 -march=native -O3 -fomit-frame-pointer -fopenmp -m64 -std=c++11 -c ./core/PhysiCell_cell.cpp
+g++-15 -march=native -O3 -fomit-frame-pointer -fopenmp -m64 -std=c++11 -c ./core/PhysiCell_custom.cpp
+g++-15 -march=native -O3 -fomit-frame-pointer -fopenmp -m64 -std=c++11 -c ./core/PhysiCell_utilities.cpp
+g++-15 -march=native -O3 -fomit-frame-pointer -fopenmp -m64 -std=c++11 -c ./core/PhysiCell_constants.cpp
+g++-15 -march=native -O3 -fomit-frame-pointer -fopenmp -m64 -std=c++11 -c ./core/PhysiCell_basic_signaling.cpp
+g++-15 -march=native -O3 -fomit-frame-pointer -fopenmp -m64 -std=c++11 -c ./core/PhysiCell_signal_behavior.cpp
+g++-15 -march=native -O3 -fomit-frame-pointer -fopenmp -m64 -std=c++11 -c ./core/PhysiCell_rules.cpp
+g++-15 -march=native -O3 -fomit-frame-pointer -fopenmp -m64 -std=c++11 -c ./modules/PhysiCell_SVG.cpp
+g++-15 -march=native -O3 -fomit-frame-pointer -fopenmp -m64 -std=c++11 -c ./modules/PhysiCell_pathology.cpp
+g++-15 -march=native -O3 -fomit-frame-pointer -fopenmp -m64 -std=c++11 -c ./modules/PhysiCell_MultiCellDS.cpp
+g++-15 -march=native -O3 -fomit-frame-pointer -fopenmp -m64 -std=c++11 -c ./modules/PhysiCell_various_outputs.cpp
+g++-15 -march=native -O3 -fomit-frame-pointer -fopenmp -m64 -std=c++11 -c ./modules/PhysiCell_pugixml.cpp
+g++-15 -march=native -O3 -fomit-frame-pointer -fopenmp -m64 -std=c++11 -c ./modules/PhysiCell_settings.cpp
+g++-15 -march=native -O3 -fomit-frame-pointer -fopenmp -m64 -std=c++11 -c ./modules/PhysiCell_geometry.cpp
+g++-15 -march=native -O3 -fomit-frame-pointer -fopenmp -m64 -std=c++11 -c ./custom_modules/custom.cpp
+g++-15 -march=native -O3 -fomit-frame-pointer -fopenmp -m64 -std=c++11 -o project_ccid_1 BioFVM_vector.o BioFVM_mesh.o BioFVM_microenvironment.o BioFVM_solvers.o BioFVM_matlab.o BioFVM_utilities.o BioFVM_basic_agent.o BioFVM_MultiCellDS.o BioFVM_agent_container.o  pugixml.o PhysiCell_phenotype.o PhysiCell_cell_container.o PhysiCell_standard_models.o PhysiCell_cell.o PhysiCell_custom.o PhysiCell_utilities.o PhysiCell_constants.o PhysiCell_basic_signaling.o PhysiCell_signal_behavior.o PhysiCell_rules.o PhysiCell_SVG.o PhysiCell_pathology.o PhysiCell_MultiCellDS.o PhysiCell_various_outputs.o PhysiCell_pugixml.o PhysiCell_settings.o PhysiCell_geometry.o custom.o main.cpp
+make name
+
+Executable name is project_ccid_1
+

@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ic_cells>
+  <cell_patches name="CAF">
+    <patch_collection type="annulus">
+      <patch ID="1">
+        <x0>0.0</x0>
+        <y0>0.0</y0>
+        <z0>0.0</z0>
+        <inner_radius>0.0</inner_radius>
+        <outer_radius>200.0</outer_radius>
+        <number>227</number>
+        <restrict_to_domain>true</restrict_to_domain>
+      </patch>
+    </patch_collection>
+  </cell_patches>
+  <cell_patches name="CD4_Tcell">
+    <patch_collection type="annulus">
+      <patch ID="1">
+        <x0>0.0</x0>
+        <y0>0.0</y0>
+        <z0>0.0</z0>
+        <inner_radius>0.0</inner_radius>
+        <outer_radius>200.0</outer_radius>
+        <number>1116</number>
+        <restrict_to_domain>true</restrict_to_domain>
+      </patch>
+    </patch_collection>
+  </cell_patches>
+  <cell_patches name="CD8_Tcell">
+    <patch_collection type="annulus">
+      <patch ID="1">
+        <x0>0.0</x0>
+        <y0>0.0</y0>
+        <z0>0.0</z0>
+        <inner_radius>0.0</inner_radius>
+        <outer_radius>200.0</outer_radius>
+        <number>2224</number>
+        <restrict_to_domain>true</restrict_to_domain>
+      </patch>
+    </patch_collection>
+  </cell_patches>
+  <cell_patches name="CD8_exhausted">
+    <patch_collection type="annulus">
+      <patch ID="1">
+        <x0>0.0</x0>
+        <y0>0.0</y0>
+        <z0>0.0</z0>
+        <inner_radius>0.0</inner_radius>
+        <outer_radius>200.0</outer_radius>
+        <number>0</number>
+        <restrict_to_domain>true</restrict_to_domain>
+      </patch>
+    </patch_collection>
+  </cell_patches>
+  <cell_patches name="Treg">
+    <patch_collection type="annulus">
+      <patch ID="1">
+        <x0>0.0</x0>
+        <y0>0.0</y0>
+        <z0>0.0</z0>
+        <inner_radius>0.0</inner_radius>
+        <outer_radius>200.0</outer_radius>
+        <number>389</number>
+        <restrict_to_domain>true</restrict_to_domain>
+      </patch>
+    </patch_collection>
+  </cell_patches>
+  <cell_patches name="apCAF">
+    <patch_collection type="annulus">
+      <patch ID="1">
+        <x0>0.0</x0>
+        <y0>0.0</y0>
+        <z0>0.0</z0>
+        <inner_radius>0.0</inner_radius>
+        <outer_radius>200.0</outer_radius>
+        <number>13</number>
+        <restrict_to_domain>true</restrict_to_domain>
+      </patch>
+    </patch_collection>
+  </cell_patches>
+  <cell_patches name="epithelial_normal">
+    <patch_collection type="annulus">
+      <patch ID="1">
+        <x0>0.0</x0>
+        <y0>0.0</y0>
+        <z0>0.0</z0>
+        <inner_radius>0.0</inner_radius>
+        <outer_radius>400.0</outer_radius>
+        <number>0</number>
+        <restrict_to_domain>true</restrict_to_domain>
+      </patch>
+    </patch_collection>
+  </cell_patches>
+  <cell_patches name="epithelial_tumor">
+    <patch_collection type="annulus">
+      <patch ID="1">
+        <x0>0.0</x0>
+        <y0>0.0</y0>
+        <z0>0.0</z0>
+        <inner_radius>200.0</inner_radius>
+        <outer_radius>400.0</outer_radius>
+        <number>22</number>
+        <restrict_to_domain>true</restrict_to_domain>
+      </patch>
+    </patch_collection>
+  </cell_patches>
+  <cell_patches name="epithelial_tumor_class1">
+    <patch_collection type="annulus">
+      <patch ID="1">
+        <x0>0.0</x0>
+        <y0>0.0</y0>
+        <z0>0.0</z0>
+        <inner_radius>200.0</inner_radius>
+        <outer_radius>400.0</outer_radius>
+        <number>56</number>
+        <restrict_to_domain>true</restrict_to_domain>
+      </patch>
+    </patch_collection>
+  </cell_patches>
+  <cell_patches name="epithelial_tumor_class1_class2">
+    <patch_collection type="annulus">
+      <patch ID="1">
+        <x0>0.0</x0>
+        <y0>0.0</y0>
+        <z0>0.0</z0>
+        <inner_radius>200.0</inner_radius>
+        <outer_radius>400.0</outer_radius>
+        <number>136</number>
+        <restrict_to_domain>true</restrict_to_domain>
+      </patch>
+    </patch_collection>
+  </cell_patches>
+  <cell_patches name="epithelial_tumor_class2">
+    <patch_collection type="annulus">
+      <patch ID="1">
+        <x0>0.0</x0>
+        <y0>0.0</y0>
+        <z0>0.0</z0>
+        <inner_radius>200.0</inner_radius>
+        <outer_radius>400.0</outer_radius>
+        <number>17</number>
+        <restrict_to_domain>true</restrict_to_domain>
+      </patch>
+    </patch_collection>
+  </cell_patches>
+  <cell_patches name="macrophage">
+    <patch_collection type="annulus">
+      <patch ID="1">
+        <x0>0.0</x0>
+        <y0>0.0</y0>
+        <z0>0.0</z0>
+        <inner_radius>0.0</inner_radius>
+        <outer_radius>400.0</outer_radius>
+        <number>0</number>
+        <restrict_to_domain>true</restrict_to_domain>
+      </patch>
+    </patch_collection>
+  </cell_patches>
+  <cell_patches name="mesenchymal_normal">
+    <patch_collection type="annulus">
+      <patch ID="1">
+        <x0>0.0</x0>
+        <y0>0.0</y0>
+        <z0>0.0</z0>
+        <inner_radius>0.0</inner_radius>
+        <outer_radius>400.0</outer_radius>
+        <number>0</number>
+        <restrict_to_domain>true</restrict_to_domain>
+      </patch>
+    </patch_collection>
+  </cell_patches>
+  <cell_patches name="mesenchymal_tumor">
+    <patch_collection type="annulus">
+      <patch ID="1">
+        <x0>0.0</x0>
+        <y0>0.0</y0>
+        <z0>0.0</z0>
+        <inner_radius>200.0</inner_radius>
+        <outer_radius>400.0</outer_radius>
+        <number>16</number>
+        <restrict_to_domain>true</restrict_to_domain>
+      </patch>
+    </patch_collection>
+  </cell_patches>
+  <cell_patches name="mesenchymal_tumor_class1">
+    <patch_collection type="annulus">
+      <patch ID="1">
+        <x0>0.0</x0>
+        <y0>0.0</y0>
+        <z0>0.0</z0>
+        <inner_radius>200.0</inner_radius>
+        <outer_radius>400.0</outer_radius>
+        <number>25</number>
+        <restrict_to_domain>true</restrict_to_domain>
+      </patch>
+    </patch_collection>
+  </cell_patches>
+  <cell_patches name="mesenchymal_tumor_class1_class2">
+    <patch_collection type="annulus">
+      <patch ID="1">
+        <x0>0.0</x0>
+        <y0>0.0</y0>
+        <z0>0.0</z0>
+        <inner_radius>200.0</inner_radius>
+        <outer_radius>400.0</outer_radius>
+        <number>33</number>
+        <restrict_to_domain>true</restrict_to_domain>
+      </patch>
+    </patch_collection>
+  </cell_patches>
+  <cell_patches name="mesenchymal_tumor_class2">
+    <patch_collection type="annulus">
+      <patch ID="1">
+        <x0>0.0</x0>
+        <y0>0.0</y0>
+        <z0>0.0</z0>
+        <inner_radius>200.0</inner_radius>
+        <outer_radius>400.0</outer_radius>
+        <number>5</number>
+        <restrict_to_domain>true</restrict_to_domain>
+      </patch>
+    </patch_collection>
+  </cell_patches>
+  <cell_patches name="PDAC_unclassified">
+    <patch_collection type="annulus">
+      <patch ID="1">
+        <x0>0.0</x0>
+        <y0>0.0</y0>
+        <z0>0.0</z0>
+        <inner_radius>200.0</inner_radius>
+        <outer_radius>400.0</outer_radius>
+        <number>167</number>
+        <restrict_to_domain>true</restrict_to_domain>
+      </patch>
+    </patch_collection>
+  </cell_patches>
+</ic_cells>

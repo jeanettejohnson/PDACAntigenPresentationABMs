@@ -1,0 +1,42 @@
+[config]
+required = true
+varied = true
+basename = "PhysiCell_settings.xml"
+
+[custom_code]
+required = true
+varied = false
+
+[rulesets_collection]
+required = false
+varied = true
+basename = ["base_rulesets.csv", "base_rulesets.xml"]
+
+[intracellular]
+required = false
+varied = true
+basename = "intracellular.xml"
+
+[ic_cell]
+path_from_inputs = ["ics", "cells"]
+required = false
+varied = [false, true]
+basename = ["cells.csv", "cells.xml"]
+
+[ic_substrate]
+path_from_inputs = ["ics", "substrates"]
+required = false
+varied = false
+basename = "substrates.csv"
+
+[ic_ecm]
+path_from_inputs = ["ics", "ecms"]
+required = false
+varied = [false, true]
+basename = ["ecm.csv", "ecm.xml"]
+
+[ic_dc]
+path_from_inputs = ["ics", "dcs"]
+required = false
+varied = false
+basename = "dcs.csv"

@@ -116,7 +116,7 @@ void create_cell_types(void)
 	   Cell rule definitions
 	*/
 
-	setup_cell_rules();
+	setup_behavior_rules(); 
 
 	/*
 	   Put any modifications to individual cell definitions here.
@@ -152,18 +152,12 @@ void setup_microenvironment(void)
 	return;
 }
 
-void setup_tissue( std::string ic_cell_file, std::string rules_file )
+void setup_tissue( void )
 {
 	setup_tissue_domain();
-
-	if( !ic_cell_file.empty() )
-	{
-		load_cells_csv( ic_cell_file );
-	}
-	else
-	{
-		load_cells_from_pugixml();
-	}
+	// load cells from your CSV file (if enabled)
+	load_initial_cells();
+	set_parameters_from_distributions();
 
 	return;
 }

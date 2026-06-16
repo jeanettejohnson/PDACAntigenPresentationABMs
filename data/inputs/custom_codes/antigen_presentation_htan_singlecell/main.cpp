@@ -86,49 +86,14 @@ using namespace PhysiCell;
 
 int main(int argc, char *argv[])
 {
-	bool XML_status = false;
-	char copy_command [1024];
-	if( argc > 1 )
-	{
-		XML_status = load_PhysiCell_config_file( argv[1] );
-		sprintf( copy_command , "cp %s %s" , argv[1] , PhysiCell_settings.folder.c_str() );
-	}
-	else
-	{
-		XML_status = load_PhysiCell_config_file( "./config/PhysiCell_settings.xml" );
-		sprintf( copy_command , "cp ./config/PhysiCell_settings.xml %s" , PhysiCell_settings.folder.c_str() );
-	}
-	if( !XML_status )
-	{ exit(-1); }
+	// read arguments
+	argument_parser.parse(argc, argv);
 
-	// parse additional flags: -o (output dir), -i (IC cell CSV), -r (rules XML)
-	std::string ic_cell_file = "";
-	std::string rules_file = "";
-	for( int i = 2; i < argc; i++ )
-	{
-		if( std::string(argv[i]) == "-o" && i + 1 < argc )
-		{
-			PhysiCell_settings.folder = argv[++i];
-		}
-		else if( std::string(argv[i]) == "-i" && i + 1 < argc )
-		{
-			ic_cell_file = argv[++i];
-		}
-		else if( std::string(argv[i]) == "-r" && i + 1 < argc )
-		{
-			rules_file = argv[++i];
-		}
-	}
-
-	// copy config file to output directry
-	system(copy_command);
-
+	// load and parse settings file(s)
+	load_PhysiCell_config_file();
+	
 	// OpenMP setup
 	omp_set_num_threads(PhysiCell_settings.omp_num_threads);
-	std::cout << "------OMP SETUP------" << std::endl;
-	std::cout << "Requested number of threads: " << PhysiCell_settings.omp_num_threads << std::endl;
-	std::cout << "Number of threads set: " << omp_get_max_threads() << std::endl;
-	std::cout << "---------------------" << std::endl;
 
 	// time setup
 	std::string time_units = "min";

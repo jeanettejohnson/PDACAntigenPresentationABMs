@@ -1,0 +1,16 @@
+# PCMM
+
+## databases
+*.db
+
+## variations folders
+*_variations/
+
+## custom codes
+compilation*
+macros.txt
+physicell_commit_hash.txt
+project*
+
+## outputs
+/outputs/

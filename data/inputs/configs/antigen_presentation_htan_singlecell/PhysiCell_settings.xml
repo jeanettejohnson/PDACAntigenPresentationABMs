@@ -27,7 +27,7 @@
     </parallel>
 
     <save>
-        <folder>outputs/HT115_S1H6_wellmixed</folder>
+        <folder>output</folder>
         <full_data>
             <interval units="min">30</interval>
             <enable>true</enable>
@@ -35,6 +35,28 @@
         <SVG>
             <interval units="min">30</interval>
             <enable>true</enable>
+            <cell_colors>
+                <cell_color name="epithelial_normal">palegreen</cell_color>
+                <cell_color name="mesenchymal_normal">lightcyan</cell_color>
+                <cell_color name="CAF">yellow</cell_color>
+                <cell_color name="epithelial_tumor">green</cell_color>
+                <cell_color name="mesenchymal_tumor">blue</cell_color>
+                <cell_color name="other_tissue">magenta</cell_color>
+                <cell_color name="CD4_Tcell">darkorange</cell_color>
+                <cell_color name="CD8_Tcell">maroon</cell_color>
+                <cell_color name="Treg">plum</cell_color>
+                <cell_color name="CD8_exhausted">lightcoral</cell_color>
+                <cell_color name="B cell">papayawhip</cell_color>
+                <cell_color name="macrophage">lightpink</cell_color>
+                <cell_color name="epithelial_tumor_class1">chartreuse</cell_color>
+                <cell_color name="epithelial_tumor_class1_class2">darkolivegreen</cell_color>
+                <cell_color name="epithelial_tumor_class2">seagreen</cell_color>
+                <cell_color name="mesenchymal_tumor_class1">lightskyblue</cell_color>
+                <cell_color name="mesenchymal_tumor_class1_class2">dodgerblue</cell_color>
+                <cell_color name="mesenchymal_tumor_class2">royalblue</cell_color>
+                <cell_color name="apCAF">grey</cell_color>
+                <cell_color name="PDAC_unclassified">white</cell_color>
+            </cell_colors>
             <plot_substrate enabled="true" limits="true">
                 <substrate>ecm</substrate>
                 <colormap>viridis</colormap>
@@ -5819,7 +5841,7 @@
 
     <initial_conditions>
         <cell_positions type="csv" enabled="true">
-            <folder>/Users/jeanette.johnson/PDACAntigenPresentationABMs/PhysiCell/config/ics/htan_singlecell</folder>
+            <folder>./PhysiCell/config/ics/htan_singlecell</folder>
             <filename>HT115_S1H6_wellmixed.csv</filename>
         </cell_positions>
     </initial_conditions>

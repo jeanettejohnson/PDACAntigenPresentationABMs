@@ -72,7 +72,6 @@
 #include <cmath>
 #include <omp.h>
 #include <fstream>
-#include <getopt.h>
 
 #include "./core/PhysiCell.h"
 #include "./modules/PhysiCell_standard_modules.h"
@@ -91,7 +90,7 @@ int main(int argc, char *argv[])
 
 	// load and parse settings file(s)
 	load_PhysiCell_config_file();
-	
+
 	// OpenMP setup
 	omp_set_num_threads(PhysiCell_settings.omp_num_threads);
 
@@ -111,7 +110,7 @@ int main(int argc, char *argv[])
 	/* Users typically start modifying here. START USERMODS */
 
 	create_cell_types();
-	setup_tissue( ic_cell_file, rules_file );
+	setup_tissue();
 
 	/* Users typically stop modifying here. END USERMODS */
 

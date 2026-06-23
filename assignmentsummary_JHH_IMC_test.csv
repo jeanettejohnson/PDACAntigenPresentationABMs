@@ -1,0 +1,4 @@
+sample_id,total,CAF,CD4_Tcell,CD8_Tcell,PDAC_unclassified,Treg,apCAF,epithelial_normal,epithelial_tumor_class1,epithelial_tumor_class1_class2,mesenchymal_tumor_class1,mesenchymal_tumor_class1_class2
+JHH368ROI1,2473,871,425,208,0,0,260,549,101,3,50,6
+JHH368ROI2,2251,790,492,311,0,0,260,192,120,5,72,9
+JHH368ROI3,1920,769,345,137,0,0,226,124,188,8,115,8

@@ -69,12 +69,12 @@
 
 void create_cell_types(void)
 {
-	// set the random seed 
+	// set the random seed
 	if (parameters.ints.find_index("random_seed") != -1)
 	{
 		SeedRandom(parameters.ints("random_seed"));
 	}
-	
+
 	/*
 	   Put any modifications to default cell definition here if you
 	   want to have "inherited" by other cell types.
@@ -82,7 +82,9 @@ void create_cell_types(void)
 	   This is a good place to set default functions.
 	*/
 
-	initialize_default_cell_definition(); // in cell_ecm_interactions.cpp. Sets custom velocity function (cell-ECM motility interaction) and custom cell rule (ECM remodeling).cell_defaults.phenotype.secretion.sync_to_microenvironment( &microenvironment );
+	initialize_default_cell_definition();
+	cell_defaults.phenotype.secretion.sync_to_microenvironment(&microenvironment);
+
 	cell_defaults.functions.volume_update_function = standard_volume_update_function;
 	cell_defaults.functions.update_velocity = standard_update_cell_velocity;
 
@@ -116,7 +118,7 @@ void create_cell_types(void)
 	   Cell rule definitions
 	*/
 
-	setup_behavior_rules(); 
+	setup_behavior_rules();
 
 	/*
 	   Put any modifications to individual cell definitions here.
@@ -152,7 +154,7 @@ void setup_microenvironment(void)
 	return;
 }
 
-void setup_tissue( void )
+void setup_tissue(void)
 {
 	setup_tissue_domain();
 	// load cells from your CSV file (if enabled)

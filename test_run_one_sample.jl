@@ -3,12 +3,7 @@ ENV["PHYSICELL_CPP"] = "g++-15"
 using PhysiCellModelManager
 using CSV, DataFrames
 
-initializeModelManager(
-    joinpath(@__DIR__, "PhysiCell"),
-    joinpath(@__DIR__, "data")
-)
-
-df = CSV.read(expanduser("~/assignmentsummary_HTAN_singlecell.csv"), DataFrame)
+df = CSV.read(expanduser("./assignmentsummary_HTAN_singlecell.csv"), DataFrame)
 
 inputs = InputFolders(
     "antigen_presentation_htan_singlecell",
@@ -38,20 +33,20 @@ mesenchymal_class2_count = round(Int, row.Pattern7_class_2)
 
 pdac_unspecified_count = round(Int, row.PDAC_unclassified)
 
-dv_caf  = DiscreteVariation(icCellsPath("caf",                       "annulus", 1, "number"), caf_count)
-dv_cd4  = DiscreteVariation(icCellsPath("cd4_tcell",                 "annulus", 1, "number"), cd4_count)
-dv_cd8  = DiscreteVariation(icCellsPath("cd8_tcell",                 "annulus", 1, "number"), cd8_count)
-dv_treg = DiscreteVariation(icCellsPath("treg",                      "annulus", 1, "number"), treg_count)
-dv_apcaf = DiscreteVariation(icCellsPath("apcaf",                    "annulus", 1, "number"), apcaf_count)
-dv_epithelial = DiscreteVariation(icCellsPath("epithelial",                       "annulus", 1, "number"), epithelial_count)
-dv_epithelial_class1 = DiscreteVariation(icCellsPath("epithelial_class1",         "annulus", 1, "number"), epithelial_class1_count)
-dv_epithelial_class1_class2 = DiscreteVariation(icCellsPath("epithelial_class1_class2", "annulus", 1, "number"), epithelial_class1_class2_count)
-dv_epithelial_class2 = DiscreteVariation(icCellsPath("epithelial_class2",         "annulus", 1, "number"), epithelial_class2_count)
-dv_mesenchymal = DiscreteVariation(icCellsPath("mesenchymal",                       "annulus", 1, "number"), mesenchymal_count)
-dv_mesenchymal_class1 = DiscreteVariation(icCellsPath("mesenchymal_class1",         "annulus", 1, "number"), mesenchymal_class1_count)
-dv_mesenchymal_class1_class2 = DiscreteVariation(icCellsPath("mesenchymal_class1_class2", "annulus", 1, "number"), mesenchymal_class1_class2_count)
-dv_mesenchymal_class2 = DiscreteVariation(icCellsPath("mesenchymal_class2",         "annulus", 1, "number"), mesenchymal_class2_count)
-dv_pdac_unspecified = DiscreteVariation(icCellsPath("pdac_unspecified",             "annulus", 1, "number"), pdac_unspecified_count)
+dv_caf  = DiscreteVariation(icCellsPath("CAF",                       "annulus", 1, "number"), caf_count)
+dv_cd4  = DiscreteVariation(icCellsPath("CD4_Tcell",                 "annulus", 1, "number"), cd4_count)
+dv_cd8  = DiscreteVariation(icCellsPath("CD8_Tcell",                 "annulus", 1, "number"), cd8_count)
+dv_treg = DiscreteVariation(icCellsPath("Treg",                      "annulus", 1, "number"), treg_count)
+dv_apcaf = DiscreteVariation(icCellsPath("apCAF",                    "annulus", 1, "number"), apcaf_count)
+dv_epithelial = DiscreteVariation(icCellsPath("epithelial_tumor",                       "annulus", 1, "number"), epithelial_count)
+dv_epithelial_class1 = DiscreteVariation(icCellsPath("epithelial_tumor_class1",         "annulus", 1, "number"), epithelial_class1_count)
+dv_epithelial_class1_class2 = DiscreteVariation(icCellsPath("epithelial_tumor_class1_class2", "annulus", 1, "number"), epithelial_class1_class2_count)
+dv_epithelial_class2 = DiscreteVariation(icCellsPath("epithelial_tumor_class2",         "annulus", 1, "number"), epithelial_class2_count)
+dv_mesenchymal = DiscreteVariation(icCellsPath("mesenchymal_tumor",                       "annulus", 1, "number"), mesenchymal_count)
+dv_mesenchymal_class1 = DiscreteVariation(icCellsPath("mesenchymal_tumor_class1",         "annulus", 1, "number"), mesenchymal_class1_count)
+dv_mesenchymal_class1_class2 = DiscreteVariation(icCellsPath("mesenchymal_tumor_class1_class2", "annulus", 1, "number"), mesenchymal_class1_class2_count)
+dv_mesenchymal_class2 = DiscreteVariation(icCellsPath("mesenchymal_tumor_class2",         "annulus", 1, "number"), mesenchymal_class2_count)
+dv_pdac_unspecified = DiscreteVariation(icCellsPath("PDAC_unclassified",             "annulus", 1, "number"), pdac_unspecified_count)
 
 cv = CoVariation(dv_caf, dv_cd4, dv_cd8, dv_treg, dv_apcaf, dv_epithelial, dv_epithelial_class1, dv_epithelial_class1_class2, dv_epithelial_class2, dv_mesenchymal, dv_mesenchymal_class1, dv_mesenchymal_class1_class2, dv_mesenchymal_class2, dv_pdac_unspecified)
 

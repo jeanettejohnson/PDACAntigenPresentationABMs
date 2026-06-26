@@ -1,36 +1,40 @@
 import numpy as np
 import pandas as pd
-import tkinter as tk
-from tkinter import filedialog
+from pathlib import Path
 
-PERCENTILE = 95  # clip ECM values above this percentile of nonzero values
+PERCENTILE   = 95   # clip substrate values above this percentile of nonzero values
+SUBSTRATES_DIR = Path(__file__).parent / "PhysiCell/user_projects/antigen_presentation/config/ics/substrates"
 
-# ── Prompt user to select BIWT CSV ───────────────────────────────────────────
-root = tk.Tk()
-root.withdraw()
-input_path = filedialog.askopenfilename(
-    title="Select BIWT substrate CSV",
-    filetypes=[("CSV files", "*.csv"), ("All files", "*.*")]
-)
-if not input_path:
-    raise SystemExit("No file selected.")
-print(f"Selected: {input_path}")
+csvs = sorted(p for p in SUBSTRATES_DIR.glob("*.csv") if not p.stem.endswith("_scaled"))
+if not csvs:
+    raise SystemExit(f"No unscaled CSVs found in {SUBSTRATES_DIR}")
 
-# ── Load and scale ────────────────────────────────────────────────────────────
-df = pd.read_csv(input_path)
+print(f"Found {len(csvs)} file(s) to scale in {SUBSTRATES_DIR}\n")
 
-ecm_col = [c for c in df.columns if c not in ['x', 'y', 'z']]
-print(f"Substrate columns to scale: {ecm_col}")
+for input_path in csvs:
+    print(f"Processing: {input_path.name}")
+    df = pd.read_csv(input_path)
 
-for col in ecm_col:
-    vals = df[col].values.astype(float)
-    nonzero_vals = vals[vals > 0]
-    upper = np.percentile(nonzero_vals, PERCENTILE)
-    df[col] = (np.clip(vals, 0, upper) / upper) * 10
-    print(f"  {col}: clipped at {PERCENTILE}th percentile ({upper:.3f}), scaled to [0, 10]")
-    print(f"         min={df[col].min():.3f}, median={df[col].median():.3f}, max={df[col].max():.3f}")
+    n_before = len(df)
+    df = df.drop_duplicates(subset=['x', 'y', 'z'], keep='first')
+    n_dupes = n_before - len(df)
+    if n_dupes > 0:
+        print(f"  Dropped {n_dupes} duplicate voxel(s)")
 
-# ── Save to same location with _scaled suffix ─────────────────────────────────
-output_path = input_path.replace(".csv", "_scaled.csv")
-df.to_csv(output_path, index=False)
-print(f"\nSaved to: {output_path}")
+    substrate_cols = [c for c in df.columns if c not in ('x', 'y', 'z')]
+    for col in substrate_cols:
+        vals = df[col].values.astype(float)
+        nonzero_vals = vals[vals > 0]
+        if len(nonzero_vals) == 0:
+            print(f"  {col}: all zeros — skipping")
+            continue
+        upper = np.percentile(nonzero_vals, PERCENTILE)
+        df[col] = (np.clip(vals, 0, upper) / upper) * 10
+        print(f"  {col}: clipped at {PERCENTILE}th percentile ({upper:.3f}), scaled to [0, 10]")
+        print(f"         min={df[col].min():.3f}, median={df[col].median():.3f}, max={df[col].max():.3f}")
+
+    output_path = input_path.with_stem(input_path.stem + "_scaled")
+    df.to_csv(output_path, index=False)
+    print(f"  Saved: {output_path.name}\n")
+
+print("Done.")

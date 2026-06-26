@@ -12,6 +12,7 @@ data/inputs/**/intracellular_variations/
 data/outputs/simulations/
 data/outputs/monads/
 data/outputs/samplings/
+data/.trash/
 
 # PhysiCell build artifacts
 PhysiCell/*.o

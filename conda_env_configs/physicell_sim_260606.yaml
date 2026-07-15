@@ -1,0 +1,149 @@
+name: physicell-sim-260606
+channels:
+  - conda-forge
+  - bioconda
+
+# physicell-sim-260606: reproducibility-pinned spec.
+# Built from the minimal source spec plus a full `conda env export` of the same environment.
+#
+# This env runs three engines:
+#   - PhysiCell (C++ agent-based model; BioFVM diffusion is OpenMP-parallel and FP-sensitive,
+#     so the compiler runtime and the OpenMP layer are locked).
+#   - PhysiCell Studio (PyQt5 GUI plus numpy/scipy/pandas post-processing of simulation output).
+#   - PhysiCell model manager (Julia: parameter sweeps and sparse linear algebra; conda-forge
+#     julia links conda's OpenBLAS, SuiteSparse, and openlibm, so those are in Julia's result path).
+#
+# Pinning policy:
+#   1. Every package from the source spec is pinned to its resolved version.
+#   2. The numerical substrate is locked: BLAS/LAPACK with the OpenBLAS variant, the OpenMP and
+#      threading runtimes, the Fortran/SIMD runtimes, the libm used by Julia, the sparse/eigen
+#      solver stack, and the numba JIT with its LLVM backend.
+#   3. Method engines are locked: numpy/scipy/pandas, scikit-learn, statsmodels with patsy,
+#      scanpy/anndata, and the umap/pynndescent neighbor and graph backends.
+#   4. Versions only, no build hashes. A build glob is kept only where it locks a real variant:
+#      *openblas (BLAS impl), pthreads* (OpenBLAS threading), *gnu (OpenMP mutex), nompi*
+#      (MPI-free ARPACK), *x86_64_v4 (SIMD microarch level).
+#   5. Pure I/O, plotting, notebook, and OS packages are left unpinned so the solver moves.
+
+dependencies:
+
+  # === Compiler toolchain & runtime anchor ========================================
+  # gxx anchors the gcc 15.2.0 runtime. libgcc / libstdcxx resolve from it, which also fixes
+  # the C++ runtime that PhysiCell's compiled binary links against, so they are not pinned again.
+  - gxx=15.2.0
+  - make=4.4.1
+
+  # === BLAS / LAPACK (locked to the OpenBLAS variant) =============================
+  # Backs numpy/scipy in Studio post-processing and Julia's LinearAlgebra. An MKL build of the
+  # same libblas version would change floating-point results, so the variant is locked, not just
+  # the version. The ilp64 (64-bit-int) build is kept because Julia and some packages use it.
+  - libblas=3.11.0=*openblas
+  - libcblas=3.11.0=*openblas
+  - liblapack=3.11.0=*openblas
+  - libopenblas=0.3.33=pthreads*
+  - libopenblas-ilp64=0.3.33=pthreads*
+  - openblas-ilp64=0.3.33=pthreads*
+
+  # === OpenMP / threading runtime =================================================
+  # PhysiCell/BioFVM is OpenMP-parallel; reduction order under OpenMP is FP-sensitive, so the
+  # GNU OpenMP runtime and its mutex variant are locked. tbb and threadpoolctl govern numba and
+  # BLAS thread pools, which also set parallel reduction order.
+  - libgomp=15.2.0
+  - _openmp_mutex=4.5=*gnu
+  - tbb=2022.3.0
+  - threadpoolctl=3.6.0
+
+  # === Fortran & SIMD runtimes ====================================================
+  - libgfortran=15.2.0
+  - libgfortran5=15.2.0
+  # _x86_64-microarch-level locks the SIMD codepath (v4 = AVX-512), which matters for the FP-heavy
+  # PhysiCell loops and Julia's JIT-emitted vector code. It constrains the env to an AVX-512 CPU;
+  # relax or drop it if you move to a machine without AVX-512.
+  # - _x86_64-microarch-level=4=*x86_64_v4
+
+  # === Math runtime (libm) ========================================================
+  # openlibm is the libm that conda-forge julia calls for transcendental functions (exp, log,
+  # sin, ...). Different versions can differ in the last bit, so it is locked for Julia runs.
+  - openlibm=0.8.1
+  - libopenlibm4=0.8.1
+
+  # === JIT / compiler backend (numba stack) =======================================
+  - numba=0.65.1
+  - llvmlite=0.47.0
+  - libllvm20=20.1.8                        # LLVM runtime that llvmlite/numba link against
+
+  # === Sparse / eigen / decomposition solvers =====================================
+  # Julia's SparseArrays stdlib factorizes through SuiteSparse (UMFPACK/CHOLMOD/SPQR/KLU), and
+  # scipy.sparse uses the same stack; ARPACK backs scipy eigsh and scanpy spectral embedding.
+  # metis sets the fill-reducing ordering, which changes FP accumulation, so it is locked too.
+  - arpack=3.9.1=nompi*
+  - metis=5.1.0
+  - suitesparse=7.10.1
+  - libsuitesparseconfig=7.10.1
+  - libcholmod=5.3.1                        # sparse Cholesky
+  - libumfpack=6.3.5                        # sparse LU
+  - libspqr=4.3.4                           # sparse QR
+  - libklu=2.3.5
+  - libspex=3.2.3
+  - libparu=1.0.0
+  - libamd=3.3.3
+  - libcamd=3.3.3
+  - libccolamd=3.3.4
+  - libcolamd=3.3.4
+  - libbtf=2.3.2
+  - libcxsparse=4.4.1
+  - libldl=3.3.2
+  - librbio=4.3.4
+
+  # === Core array & numerics ======================================================
+  - numpy=2.4.6
+  - scipy=1.17.1
+  - pandas=2.3.3
+
+  # === Statistics & modeling ======================================================
+  - statsmodels=0.14.6
+  - patsy=1.0.2                             # design-matrix / formula builder for statsmodels
+  - scikit-learn=1.9.0
+
+  # === Single-cell / spatial analysis (Python) ====================================
+  # Used to analyze PhysiCell output once converted to AnnData.
+  - anndata=0.12.16
+  - scanpy=1.12.1
+  - umap-learn=0.5.12
+  - pynndescent=0.5.13                      # ANN backend for umap / scanpy neighbors
+  - networkx=3.6.1                          # graph algorithms (clustering path)
+
+  # === Simulation engine (Julia model manager) ====================================
+  - julia=1.12.5
+
+  # === Python interpreter & Jupyter ===============================================
+  - python=3.13.14
+  - pip=26.1.2
+  - ipython=9.14.1
+  - notebook=7.5.7
+  - ipympl=0.10.0
+
+  # === Qt / GUI (PhysiCell Studio) ================================================
+  - pyqt=5.15.11
+
+  # === Media / network / utility (source-listed) ==================================
+  # ffmpeg encodes Studio frame movies; the rest are source-listed support packages.
+  - ffmpeg=8.0.0
+  - pyyaml=6.0.3
+  - pygithub=2.9.1
+  - flexcache=0.3
+  - flexparser=0.4
+  - requests=2.34.2
+
+  # === Borderline numerical (pinned for your review) ==============================
+  # Edge cases under the inclusion test. Relax any you decide are not in your result path.
+  - fast-array-utils=1.4.1                  # fast sparse mean/var/sum used by scanpy/anndata
+  - array-api-compat=1.15.0                 # array-API dispatch shim (routes the backend)
+  - gmp=6.3.0                               # Julia BigInt backend (exact; version-stable results)
+  - mpfr=4.2.2                              # Julia BigFloat backend (correctly rounded; stable)
+
+  - pip:
+    # Install LAST so conda packages win. Genuinely pip-only; no conda build exists.
+    - simulariumio[physicell]==1.13.0
+    - physiboss-models==0.1.2
+    - pint==0.25.3

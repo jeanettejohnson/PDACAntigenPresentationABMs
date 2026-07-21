@@ -1,6 +1,6 @@
 # HPC-compatible copy of ../test_run_wellmixed_imc.jl -- submits to SLURM
-# instead of running locally. Test version: small sample set, no reuse of
-# previous results. See hpc_setup.jl for the job options.
+# instead of running locally. Full sample pool. See hpc_setup.jl for the job
+# options.
 
 ENV["PHYSICELL_CPP"] = "g++"
 
@@ -14,7 +14,7 @@ initializeModelManager(
 
 include(joinpath(@__DIR__, "hpc_setup.jl"))
 
-df = CSV.read(joinpath(@__DIR__, "..", "assignmentsummary_JHH_IMC_test.csv"), DataFrame)
+df = CSV.read(joinpath(@__DIR__, "..", "assignmentsummary_JHH_IMC.csv"), DataFrame)
 
 inputs = InputFolders(
     "antigen_presentation_htan_singlecell",   # config
@@ -48,7 +48,7 @@ for row in eachrow(df)
 
     println("Queuing $sample  ($(round(Int, row.total)) cells across $(length(cell_types)) types)")
     flush(stdout)
-    push!(monads, createTrial(inputs, cv; n_replicates=1, use_previous=false))
+    push!(monads, createTrial(inputs, cv; n_replicates=1, use_previous=true))
 end
 
 trial = createTrial(monads)

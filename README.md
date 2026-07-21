@@ -69,5 +69,3 @@ cd slurm
 Each driver job activates the conda environment and runs the matching Julia script, which itself submits the individual simulation (or per-ROI, for imc_spatial) jobs to SLURM -- so this is a job that submits more jobs, not one flat batch. Job resources (CPUs, memory, time limit) and the SLURM account are resolved automatically; see `slurm/slurm_common.jl` to adjust them.
 
 Driver-job logs land in `slurm/logs/` as separate `<job-name>_<job-id>.out`/`.err` files (SLURM's own `%x_%j` naming). The individual simulation jobs log elsewhere: PCMM's own `data/outputs/simulations/<id>/` for simulations 1-3, and `PhysiCell/outputs/<ROI>/run.out`/`run.err` for imc_spatial.
-
-Note: `run_imc_wellmixed.jl` currently runs against the smaller test sample set (`assignmentsummary_JHH_IMC_test.csv`), not the full `assignmentsummary_JHH_IMC.csv`.

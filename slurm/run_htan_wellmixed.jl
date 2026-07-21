@@ -67,6 +67,7 @@ for row in eachrow(df)
     cv = CoVariation(dv_ecm, dv_caf, dv_cd4, dv_cd8, dv_treg, dv_apcaf, dv_epithelial, dv_epithelial_class1, dv_epithelial_class1_class2, dv_epithelial_class2, dv_mesenchymal, dv_mesenchymal_class1, dv_mesenchymal_class1_class2, dv_mesenchymal_class2, dv_pdac_unspecified)
 
     println("Queuing $sample  CAF=$caf_count  CD4=$cd4_count  CD8=$cd8_count  Treg=$treg_count Epithelial=$epithelial_count  Mesenchymal=$mesenchymal_count  PDAC_unspecified=$pdac_unspecified_count")
+    flush(stdout)
     push!(monads, createTrial(inputs, cv; n_replicates=1, use_previous=true))
 end
 

@@ -47,6 +47,7 @@ for row in eachrow(df)
     cv = CoVariation(dvs...)
 
     println("Queuing $sample  ($(round(Int, row.total)) cells across $(length(cell_types)) types)")
+    flush(stdout)
     push!(monads, createTrial(inputs, cv; n_replicates=1, use_previous=false))
 end
 

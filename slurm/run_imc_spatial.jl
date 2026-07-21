@@ -38,6 +38,7 @@ end
 
 function build_project()
     println("Building $PROJ_NAME (CC=$(ENV["PHYSICELL_CPP"]))...")
+    flush(stdout)
     cd(PHYSICELL_DIR) do
         run(`make clean`)
         run(`make load PROJ=$PROJ_NAME`)
@@ -59,6 +60,7 @@ function submitROI(roi_name::String, xml_path::String; skip_existing::Bool=true)
 
     if skip_existing && isfile(joinpath(output_dir, "final.xml"))
         println("SKIP $roi_name (final.xml already present)")
+        flush(stdout)
         return :skipped
     end
 
@@ -68,6 +70,7 @@ function submitROI(roi_name::String, xml_path::String; skip_existing::Bool=true)
     xml_relpath = relpath(xml_path, PHYSICELL_DIR)
 
     println("Submitting $roi_name  (config: $xml_relpath)")
+    flush(stdout)
     wrap_cmd = prepCmdForWrap(`$EXECUTABLE $xml_relpath`)
     flags = [
         "--wrap=$wrap_cmd",
@@ -86,6 +89,7 @@ function submitROI(roi_name::String, xml_path::String; skip_existing::Bool=true)
         return :ok
     catch err
         println("FAILED $roi_name: $err")
+        flush(stdout)
         return :failed
     end
 end
@@ -131,11 +135,13 @@ function main(; skip_existing::Bool=true, rebuild::Bool=true)
 
     rois = discover_rois()
     println("Found $(length(rois)) ROI configs.\n")
+    flush(stdout)
 
     results = submitAllROIs(rois; skip_existing=skip_existing)
 
     println("\nDone. ok=$(length(results[:ok]))  skipped=$(length(results[:skipped]))  failed=$(length(results[:failed]))")
     isempty(results[:failed]) || println("Failed ROIs: ", join(results[:failed], ", "))
+    flush(stdout)
     return results
 end
 

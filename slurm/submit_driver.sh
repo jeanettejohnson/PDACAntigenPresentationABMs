@@ -41,9 +41,9 @@ for n in "$@"; do
         --account="$PCMM_SLURM_ACCOUNT" \
         --time=7-00:00:00 \
         --cpus-per-task=1 \
-        --mem=1G \
+        --mem=5G \
         --job-name="pcmm-driver-${SIM_NAMES[$n]}" \
         --output="$SCRIPT_DIR/logs/%x_%j.out" \
         --error="$SCRIPT_DIR/logs/%x_%j.err" \
-        "$SCRIPT_DIR/wrap_driver.sh" "${SIM_NAMES[$n]}"
+        "$SCRIPT_DIR/wrap_driver.sh" "${SIM_NAMES[$n]}" "$SCRIPT_DIR"
 done

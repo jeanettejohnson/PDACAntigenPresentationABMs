@@ -165,6 +165,7 @@ for row in eachrow(df)
         )
 
         println("Queuing $(config.label) $sample  CAF=$caf_count  CD4=$cd4_count  CD8=$cd8_count  Treg=$treg_count  Epithelial=$epithelial_count  Mesenchymal=$mesenchymal_count  PDAC_unspecified=$pdac_unspecified_count")
+        flush(stdout)
         push!(monads, createTrial(inputs, cv_counts, cv_imm_positions, cv_caf_positions, cv_tum_positions; n_replicates=1, use_previous=true))
     end
 end

@@ -18,5 +18,5 @@ end
 # Shared SLURM resource request for per-simulation / per-ROI jobs (not the
 # driver job itself -- see submit_driver.sh for that one's own resources).
 const JOB_CPUS_PER_TASK = "1"
-const JOB_MEM = "2G"
+const JOB_MEM = "2.5G"
 const JOB_TIME = "7-00:00:00"

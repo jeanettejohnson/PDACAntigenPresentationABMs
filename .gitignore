@@ -24,3 +24,6 @@ PhysiCell/custom_modules/*.o
 
 # macOS
 .DS_Store
+
+# editor
+.vscode/

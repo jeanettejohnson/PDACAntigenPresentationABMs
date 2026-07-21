@@ -14,3 +14,7 @@ project*
 
 ## outputs
 /outputs/
+
+## auto-generated example scaffolding (PCMM copies this in via initializeModelManager;
+## not real project content -- this project has no intracellular models configured)
+components/roadrunner/Toy_Metabolic_Model.xml

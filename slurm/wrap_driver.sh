@@ -20,4 +20,10 @@ conda activate physicell-sim-260606
 
 SIM_ID="$1"
 SCRIPTS_DIR="$2"
+
+# Allow core dumps for this debugging run (paired with --propagate=CORE on
+# the per-simulation sbatch calls in run_htan_geometries.jl, so this limit
+# reaches the actual PhysiCell process, not just this driver job).
+ulimit -c unlimited
+
 julia "$SCRIPTS_DIR/run_${SIM_ID}.jl"

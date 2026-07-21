@@ -40,7 +40,7 @@ end
 useHPC(true)
 setJobOptions(Dict(
     "cpus-per-task" => "1",
-    "mem" => "2.5G",
+    "mem" => "2G",
     "time" => "7-00:00:00",
     "account" => slurmAccount(),
 ))

@@ -1,0 +1,3 @@
+# Keep the logs/ directory tracked, but not the log files it accumulates.
+logs/*
+!logs/.gitkeep

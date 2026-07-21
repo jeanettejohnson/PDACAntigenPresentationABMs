@@ -25,6 +25,27 @@ initializeModelManager(
     joinpath(@__DIR__, "data")
 )
 
+# Determine the SLURM account to bill jobs to: pull this user's associated
+# accounts from sacctmgr and use the first one listed. Set
+# ENV["PCMM_SLURM_ACCOUNT"] to override.
+function slurmAccount()
+    haskey(ENV, "PCMM_SLURM_ACCOUNT") && return ENV["PCMM_SLURM_ACCOUNT"]
+    username = readchomp(`whoami`)
+    accounts = split(readchomp(`sacctmgr -n -P show assoc user=$username format=account`), "\n"; keepempty=false)
+    isempty(accounts) && error("No SLURM account found for user $username. Set ENV[\"PCMM_SLURM_ACCOUNT\"] explicitly.")
+    return accounts[1]
+end
+
+# Submit simulations to SLURM instead of running them locally.
+useHPC(true)
+setJobOptions(Dict(
+    "cpus-per-task" => "1",
+    "mem" => "2G",
+    "time" => "7-00:00:00",
+    "account" => slurmAccount(),
+))
+setNumberOfParallelSims(50)
+
 df = CSV.read(joinpath(@__DIR__, "assignmentsummary_JHH_IMC_test.csv"), DataFrame)
 
 inputs = InputFolders(
@@ -39,6 +60,11 @@ inputs = InputFolders(
 bookkeeping = ["sample_id", "total"]
 cell_types = filter(n -> !(n in bookkeeping), names(df))
 
+# Build every sample's monad up front (no jobs submitted yet), then run them
+# all together in one Trial so the worker pool (see setNumberOfParallelSims
+# above) can submit up to that many simulations concurrently instead of
+# waiting for each sample's job to finish before starting the next.
+monads = []
 for row in eachrow(df)
     sample = row.sample_id
 
@@ -52,7 +78,9 @@ for row in eachrow(df)
 
     cv = CoVariation(dvs...)
 
-    println("Running $sample  ($(round(Int, row.total)) cells across $(length(cell_types)) types)")
-    monad = createTrial(inputs, cv; n_replicates=1, use_previous=false)
-    PhysiCellModelManager.run(monad)
+    println("Queuing $sample  ($(round(Int, row.total)) cells across $(length(cell_types)) types)")
+    push!(monads, createTrial(inputs, cv; n_replicates=1, use_previous=false))
 end
+
+trial = createTrial(monads)
+PhysiCellModelManager.run(trial)

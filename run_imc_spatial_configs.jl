@@ -19,15 +19,21 @@
 # argument (argv[1]), not a -c flag -- unlike the pcmm custom code's main.cpp.
 # -----------------------------------------------------------------------------
 
-# g++ compiler is machine dependent
-# ENV["PHYSICELL_CPP"] = "g++-15"
-ENV["PHYSICELL_CPP"] = "g++"
+# g++ compiler is machine dependent -- plain "g++" on macOS is an Apple
+# clang alias without real OpenMP support; use Homebrew's real GNU g++.
+ENV["PHYSICELL_CPP"] = "g++-16"
 
 const PROJECT_ROOT = @__DIR__
 const PHYSICELL_DIR = joinpath(PROJECT_ROOT, "PhysiCell")
-const CONFIG_DIR = joinpath(PHYSICELL_DIR, "config")
-const EXECUTABLE = joinpath(PHYSICELL_DIR, "project")
 const PROJ_NAME = "antigen_presentation"
+# NOTE: discover from user_projects/antigen_presentation/config, NOT
+# PhysiCell/config -- the latter is a local "deploy" copy that is NOT
+# git-tracked (confirmed via `git ls-files`) and will be empty/stale on any
+# fresh clone (e.g. an HPC cluster). user_projects/antigen_presentation/config
+# is the tracked, canonical source; `make load` copies it into PhysiCell/config
+# at build time, so we only need to read the tracked copy here.
+const CONFIG_DIR = joinpath(PHYSICELL_DIR, "user_projects", PROJ_NAME, "config")
+const EXECUTABLE = joinpath(PHYSICELL_DIR, "project")
 
 # Only real ROI configs, e.g. PhysiCell_settings_JHH317ROI1.xml.
 # Excludes the base PhysiCell_settings.xml and leftover sample-project

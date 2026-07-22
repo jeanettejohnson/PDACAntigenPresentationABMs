@@ -123,18 +123,34 @@ for ics_stem, ics_path in sorted(ics_files.items()):
     text = re.sub(r'<folder>outputs/[^<]*</folder>',
                   f'<folder>outputs/{roi_stem}</folder>', text, count=1)
 
-    # substrate IC filename (absolute path) — force enabled="true" regardless of template value
+    # All paths below are written RELATIVE to PhysiCell/ (the executable's
+    # cwd at runtime), not absolute. PhysiCell resolves <folder>/<filename>
+    # via plain fstream against cwd, so this makes configs portable across
+    # machines (confirmed broken twice already: old laptop -> new Mac ->
+    # HPC cluster all have different absolute home paths).
+    sub_path_rel = sub_path.relative_to(BASE / "PhysiCell")
+    ics_dir_rel = ICS_DIR.relative_to(BASE / "PhysiCell")
+    config_dir_rel = CONFIG_DIR.relative_to(BASE / "PhysiCell")
+
+    # substrate IC filename — force enabled="true" regardless of template value
     text = re.sub(
         r'<initial_condition type="csv" enabled="[^"]*">(\s*<filename>)[^<]*(</filename>)',
-        rf'<initial_condition type="csv" enabled="true">\g<1>{sub_path}\g<2>',
+        rf'<initial_condition type="csv" enabled="true">\g<1>{sub_path_rel}\g<2>',
         text, count=1
     )
 
-    # cell IC filename
+    # cell IC filename and folder
     text = re.sub(
-        r'(<cell_positions type="csv" enabled="true">.*?<filename>)[^<]*(</filename>)',
-        rf'\g<1>{ics_stem}.csv\g<2>',
+        r'(<cell_positions type="csv" enabled="true">\s*<folder>)[^<]*(</folder>\s*<filename>)[^<]*(</filename>)',
+        rf'\g<1>{ics_dir_rel}\g<2>{ics_stem}.csv\g<3>',
         text, flags=re.DOTALL, count=1
+    )
+
+    # ruleset folder
+    text = re.sub(
+        r'(<ruleset[^>]*>\s*<folder>)[^<]*(</folder>)',
+        rf'\g<1>{config_dir_rel}\g<2>',
+        text, count=1
     )
 
     # per-ROI target volumes

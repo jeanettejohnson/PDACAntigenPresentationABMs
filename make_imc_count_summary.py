@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 make_imc_count_summary.py
 -------------------------
@@ -51,11 +50,11 @@ TYPE_MAP = {
 }
 
 DROP = {"other_tissue", "duct_filler"}  # present in IMC, not placeable well-mixed
-ROI_RE = re.compile(r"^(JHH\d+ROI\d+)")  # canonical ROI key, e.g. JHH317ROI1
+ROI_RE = re.compile(r"^(JHH\d+[A-Z]?ROI\d+)")  # canonical ROI key, e.g. JHH317ROI1 or JHH417RROI4
 
 HERE = Path(__file__).parent
-IMC_DIR = f"{HERE}/PhysiCell/config/ics/JHH_IMC"
-OUT_PATH = f"{HERE}/assignmentsummary_JHH_IMC.csv"
+IMC_DIR = Path(f"{HERE}/PhysiCell/user_projects/antigen_presentation/config/ics/JHH_IMC")
+OUT_PATH = Path(f"{HERE}/assignmentsummary_JHH_IMC.csv")
 
 
 def choose_canonical(files):

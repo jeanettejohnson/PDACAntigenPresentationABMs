@@ -22,8 +22,8 @@ from matplotlib.gridspec import GridSpec
 from collections import defaultdict
 import pcdl
 
-OUTPUTS_DIR  = os.path.join(os.path.dirname(__file__), "PhysiCell", "outputs")
-ANALYSIS_DIR = os.path.join(os.path.dirname(__file__), "analysis")
+OUTPUTS_DIR  = os.path.join(os.path.dirname(os.path.dirname(__file__)), "PhysiCell", "outputs")
+ANALYSIS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "figures")
 
 TCELL_TYPES  = ["CD8_Tcell", "CD4_Tcell", "Treg", "CD8_exhausted"]
 TCELL_COLORS = {

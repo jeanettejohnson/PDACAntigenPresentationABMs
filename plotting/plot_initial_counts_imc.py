@@ -214,6 +214,6 @@ for show_dend, show_strip, do_cluster, suffix in VARIANTS:
         }
         plot_clustered(counts_df, present, ordered_rois, Z, roi_cluster,
                        titles[name],
-                       Path(__file__).parent.parent / f"analysis/{name}{suffix}.png",
+                       Path(__file__).parent.parent / f"figures/{name}{suffix}.png",
                        show_dendrogram=show_dend,
                        show_cluster_strip=show_strip)

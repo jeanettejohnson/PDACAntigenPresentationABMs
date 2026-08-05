@@ -129,21 +129,21 @@ make_scatter(
     x_col    = "apCAF",
     y_col    = "tcells",
     title    = "apCAF vs T cell abundance per IMC ROI",
-    out_path = Path(__file__).parent.parent / "analysis/apcaf_vs_tcells_ic.png",
+    out_path = Path(__file__).parent.parent / "figures/apcaf_vs_tcells_ic.png",
 )
 
 make_scatter(
     x_col    = "CAF",
     y_col    = "tcells",
     title    = "CAF vs T cell abundance per IMC ROI",
-    out_path = Path(__file__).parent.parent / "analysis/caf_vs_tcells_ic.png",
+    out_path = Path(__file__).parent.parent / "figures/caf_vs_tcells_ic.png",
 )
 
 make_scatter(
     x_col    = "CAF",
     y_col    = "apCAF",
     title    = "CAF vs apCAF abundance per IMC ROI",
-    out_path = Path(__file__).parent.parent / "analysis/caf_vs_apcaf_ic.png",
+    out_path = Path(__file__).parent.parent / "figures/caf_vs_apcaf_ic.png",
 )
 
 def make_class1_scatter(out_path):
@@ -194,26 +194,26 @@ make_scatter(
     x_col    = "epi",
     y_col    = "mes",
     title    = "Epithelial vs mesenchymal tumor cell abundance per IMC ROI",
-    out_path = Path(__file__).parent.parent / "analysis/epi_vs_mes_tumor_ic.png",
+    out_path = Path(__file__).parent.parent / "figures/epi_vs_mes_tumor_ic.png",
 )
 
 make_scatter(
     x_col    = "apCAF",
     y_col    = "CD8",
     title    = "apCAF vs CD8 T cell abundance per IMC ROI",
-    out_path = Path(__file__).parent.parent / "analysis/apcaf_vs_cd8_ic.png",
+    out_path = Path(__file__).parent.parent / "figures/apcaf_vs_cd8_ic.png",
 )
 
 make_scatter(
     x_col    = "apCAF",
     y_col    = "CD4",
     title    = "apCAF vs CD4 T cell abundance per IMC ROI",
-    out_path = Path(__file__).parent.parent / "analysis/apcaf_vs_cd4_ic.png",
+    out_path = Path(__file__).parent.parent / "figures/apcaf_vs_cd4_ic.png",
 )
 
 make_scatter(
     x_col    = "class1",
     y_col    = "class1_class2",
     title    = "Class I vs class I+II tumor cell abundance per IMC ROI",
-    out_path = Path(__file__).parent.parent / "analysis/class1_vs_class1class2_ic.png",
+    out_path = Path(__file__).parent.parent / "figures/class1_vs_class1class2_ic.png",
 )

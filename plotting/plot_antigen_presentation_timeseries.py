@@ -22,13 +22,13 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
-ROOT    = os.path.dirname(__file__)
+ROOT    = os.path.dirname(os.path.dirname(__file__))
 SIM_DIR = os.path.expanduser(
     "~/Library/CloudStorage/OneDrive-UniversityofMarylandSchoolofMedicine"
     "/AntigenPresentationSimulations/HTANSingleCell"
 )
 CSV_PATH = os.path.join(ROOT, "assignmentsummary_HTAN_singlecell.csv")
-OUT_PATH = os.path.join(ROOT, "analysis", "antigen_presentation_initial_vs_final.png")
+OUT_PATH = os.path.join(ROOT, "figures", "antigen_presentation_initial_vs_final.png")
 
 # Tumor cell type IDs → antigen class
 TUMOR_CLASS = {

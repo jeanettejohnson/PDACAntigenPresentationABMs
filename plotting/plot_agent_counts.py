@@ -14,7 +14,7 @@ DATA_DIR     = os.path.expanduser(
     "~/OneDrive - University of Maryland School of Medicine"
     "/HTANDATA/HTANWUSTL/RDataObjects"
 )
-ANALYSIS_DIR = os.path.join(os.path.dirname(__file__), "analysis")
+ANALYSIS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "figures")
 
 # ── colour groups ─────────────────────────────────────────────────────────────
 COLORS = {

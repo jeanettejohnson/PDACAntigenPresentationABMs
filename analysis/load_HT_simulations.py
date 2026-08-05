@@ -17,8 +17,8 @@ import time
 import pandas as pd
 import pcdl
 
-OUTPUTS_DIR = os.path.join(os.path.dirname(__file__), "PhysiCell", "outputs")
-ANALYSIS_DIR = os.path.join(os.path.dirname(__file__), "analysis")
+OUTPUTS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "PhysiCell", "outputs")
+ANALYSIS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "figures")
 
 
 def get_ht_folders():

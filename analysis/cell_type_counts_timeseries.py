@@ -18,8 +18,8 @@ import traceback
 import pandas as pd
 import pcdl
 
-OUTPUTS_DIR  = os.path.join(os.path.dirname(__file__), "PhysiCell", "outputs")
-OUT_DIR      = os.path.join(os.path.dirname(__file__), "analysis", "cell_type_counts")
+OUTPUTS_DIR  = os.path.join(os.path.dirname(os.path.dirname(__file__)), "PhysiCell", "outputs")
+OUT_DIR      = os.path.join(os.path.dirname(os.path.dirname(__file__)), "figures", "cell_type_counts")
 
 
 def get_ht_folders():

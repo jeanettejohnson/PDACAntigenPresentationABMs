@@ -19,13 +19,13 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
-ROOT = os.path.dirname(__file__)
+ROOT = os.path.dirname(os.path.dirname(__file__))
 SIM_DIR = os.path.expanduser(
     "~/Library/CloudStorage/OneDrive-UniversityofMarylandSchoolofMedicine"
     "/AntigenPresentationSimulations/HTANSingleCell"
 )
 CSV_PATH = os.path.join(ROOT, "assignmentsummary_HTAN_singlecell.csv")
-OUT_PATH = os.path.join(ROOT, "analysis", "initial_cell_counts.png")
+OUT_PATH = os.path.join(ROOT, "figures", "initial_cell_counts.png")
 
 # PhysiCell cell type ID → name (from initial.xml cellular_information/cell_types)
 CELL_TYPE_NAMES = {

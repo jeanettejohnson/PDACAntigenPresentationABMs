@@ -17,8 +17,8 @@ import matplotlib.patches as mpatches
 import matplotlib.lines as mlines
 from matplotlib.gridspec import GridSpec
 
-CSV_PATH = os.path.join(os.path.dirname(__file__), "analysis", "antigen_class_proportions.csv")
-OUT_PATH = os.path.join(os.path.dirname(__file__), "analysis", "antigen_class_paired_bars.png")
+CSV_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "figures", "antigen_class_proportions.csv")
+OUT_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "figures", "antigen_class_paired_bars.png")
 
 AG_CLASS_ORDER  = ["class I+II", "class I", "class II", "none"]
 AG_CLASS_COLORS = {

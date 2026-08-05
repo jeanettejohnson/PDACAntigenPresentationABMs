@@ -26,8 +26,8 @@ SIM_DIR      = os.path.expanduser(
     "~/Library/CloudStorage/OneDrive-UniversityofMarylandSchoolofMedicine"
     "/AntigenPresentationSimulations/HTANSingleCell"
 )
-ROOT         = os.path.dirname(__file__)
-ANALYSIS_DIR = os.path.join(ROOT, "analysis")
+ROOT         = os.path.dirname(os.path.dirname(__file__))
+ANALYSIS_DIR = os.path.join(ROOT, "figures")
 CSV_PATH     = os.path.join(ROOT, "assignmentsummary_HTAN_singlecell.csv")
 
 TCELL_TYPES = {

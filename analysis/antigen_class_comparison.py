@@ -22,8 +22,8 @@ import matplotlib.patches as mpatches
 import numpy as np
 import pcdl
 
-OUTPUTS_DIR = os.path.join(os.path.dirname(__file__), "PhysiCell", "outputs")
-ANALYSIS_DIR = os.path.join(os.path.dirname(__file__), "analysis")
+OUTPUTS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "PhysiCell", "outputs")
+ANALYSIS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "figures")
 
 # ── Antigen class definitions ─────────────────────────────────────────────────
 # Each tumor cell type is assigned: morphology (epi/mes/unclassified) + ag class

@@ -26,8 +26,8 @@ import pcdl
 
 from antigen_class_comparison import TUMOR_CELL_CLASSES
 
-OUTPUTS_DIR  = os.path.join(os.path.dirname(__file__), "PhysiCell", "outputs")
-ANALYSIS_DIR = os.path.join(os.path.dirname(__file__), "analysis")
+OUTPUTS_DIR  = os.path.join(os.path.dirname(os.path.dirname(__file__)), "PhysiCell", "outputs")
+ANALYSIS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "figures")
 
 ROI_RE = re.compile(r"(JHH\d+R?)ROI(\d+)")
 

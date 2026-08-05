@@ -52,7 +52,7 @@ const ROI_FILTER = get(ENV, "IMC_SPATIAL_ROIS", "")
 
 const PROJ = "antigen_presentation"
 
-const SPEC_PATH = joinpath(@__DIR__, "..", "imc_spatial_roi_specs.csv")
+const SPEC_PATH = joinpath(@__DIR__, "..", "prep_imc_spatial", "imc_spatial_roi_specs.csv")
 
 # The PCMM inputs for this simulation are generated, not committed as such.
 # Fail early and specifically rather than letting PCMM report a missing folder.

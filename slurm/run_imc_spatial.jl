@@ -54,15 +54,16 @@ const PROJ = "antigen_presentation"
 
 const SPEC_PATH = joinpath(@__DIR__, "..", "prep_imc_spatial", "imc_spatial_roi_specs.csv")
 
-# The PCMM inputs for this simulation are generated, not committed as such.
+# The spec table is tracked in git, so this should not fire on a clean clone.
 # Fail early and specifically rather than letting PCMM report a missing folder.
 if !isfile(SPEC_PATH)
     error("""
           Missing $(basename(SPEC_PATH)).
-          Run the one-time setup first, from the repo root:
+          This file is tracked and ships with the repo, so it should already be
+          present -- restore it with:
+              git checkout -- prep_imc_spatial/imc_spatial_roi_specs.csv
+          Regenerate it only if the initial conditions were rebuilt:
               python3 prep_imc_spatial/setup_imc_spatial_pcmm.py
-          It builds the PCMM input folders (custom_code, config, rulesets, and
-          the per-ROI ic_cell/ic_substrate folders) and writes the spec table.
           """)
 end
 

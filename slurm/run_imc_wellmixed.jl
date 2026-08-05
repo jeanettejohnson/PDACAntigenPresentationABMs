@@ -14,7 +14,7 @@ initializeModelManager(
 
 include(joinpath(@__DIR__, "hpc_setup.jl"))
 
-df = CSV.read(joinpath(@__DIR__, "..", "assignmentsummary_JHH_IMC.csv"), DataFrame)
+df = CSV.read(joinpath(@__DIR__, "..", "prep_imc_spatial", "assignmentsummary_JHH_IMC.csv"), DataFrame)
 
 inputs = InputFolders(
     "antigen_presentation_htan_singlecell",   # config

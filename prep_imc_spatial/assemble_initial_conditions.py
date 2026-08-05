@@ -1,8 +1,17 @@
 """
 assemble_initial_conditions.py
 -------------------------------
-Converts a QuPath detection TXT + optional duct GeoJSON into a PhysiCell ICS
-CSV, saved to PhysiCell/config/ics/JHH_IMC/.
+Converts a QuPath detection TXT + optional duct GeoJSON into a PhysiCell ICS CSV.
+
+Each ICS is written to TWO locations:
+  - PhysiCell/user_projects/antigen_presentation/config/ics/JHH_IMC/  (CANONICAL_OUTDIR)
+      git-tracked source of truth; setup_imc_spatial_pcmm.py reads this one
+  - PhysiCell/config/ics/JHH_IMC/                                     (OUTDIR)
+      the 'make load' copy PhysiCell runs from directly
+
+Writing both at once keeps them in step. Note the repo-root copy also contains an
+older generation of files with a different schema that this script does not
+produce, so the two directories are not interchangeable.
 
 Run interactively (GUI file-picker) or import process_roi() for batch use.
 """

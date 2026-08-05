@@ -4,10 +4,13 @@ make_imc_count_summary.py
 Build a wide per-ROI cell-count table from the JHH IMC initial-condition files --
 the IMC analog of assignmentsummary_HTAN_singlecell.csv.
 
-Output: assignmentsummary_JHH_IMC.csv, one row per ROI (sample_id), one column
-per PhysiCell cell type, values = cell counts.
+Output: assignmentsummary_JHH_IMC.csv, written next to this script, one row per
+ROI (sample_id), one column per PhysiCell cell type, values = cell counts.
 
-Source files live in PhysiCell/config/ics/JHH_IMC/:
+Source files are the canonical, git-tracked ICs in
+PhysiCell/user_projects/antigen_presentation/config/ics/JHH_IMC/ -- NOT the
+repo-root PhysiCell/config/ics/JHH_IMC, which is a stale older generation with a
+different schema:
   - *.csv : 'type' column is already in PhysiCell type space -> counted directly
   - *.txt : raw QuPath export; 'Classification' mapped via TYPE_MAP, then counted
 

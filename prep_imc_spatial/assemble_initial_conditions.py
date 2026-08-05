@@ -54,8 +54,8 @@ HEX_RADIUS_DEFAULT = 4.0    # half the spacing → ~4× more cells in the same a
 # under user_projects/antigen_presentation -- otherwise regenerated ICS data
 # silently never reaches version control (see generate_roi_configs.py, which
 # already writes both copies for the same reason).
-OUTDIR           = Path(__file__).parent / 'PhysiCell/config/ics/JHH_IMC'
-CANONICAL_OUTDIR = Path(__file__).parent / 'PhysiCell/user_projects/antigen_presentation/config/ics/JHH_IMC'
+OUTDIR           = Path(__file__).parent.parent / 'PhysiCell/config/ics/JHH_IMC'
+CANONICAL_OUTDIR = Path(__file__).parent.parent / 'PhysiCell/user_projects/antigen_presentation/config/ics/JHH_IMC'
 
 # Induced types whose ICS volume should match their parent type's distribution.
 PARENT_VOLUME_TYPE = {

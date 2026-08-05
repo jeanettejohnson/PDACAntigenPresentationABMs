@@ -23,7 +23,7 @@ from matplotlib.gridspec import GridSpec
 from scipy.cluster.hierarchy import linkage, dendrogram, fcluster
 from pathlib import Path
 
-ICS_DIR    = Path(__file__).parent / "PhysiCell/config/ics/JHH_IMC"
+ICS_DIR    = Path(__file__).parent.parent / "PhysiCell/config/ics/JHH_IMC"
 N_CLUSTERS = 5
 
 SKIP_SUFFIXES = {"rectangle", "withTreg", "withductfiller", "ductfiller",
@@ -214,6 +214,6 @@ for show_dend, show_strip, do_cluster, suffix in VARIANTS:
         }
         plot_clustered(counts_df, present, ordered_rois, Z, roi_cluster,
                        titles[name],
-                       Path(__file__).parent / f"analysis/{name}{suffix}.png",
+                       Path(__file__).parent.parent / f"analysis/{name}{suffix}.png",
                        show_dendrogram=show_dend,
                        show_cluster_strip=show_strip)

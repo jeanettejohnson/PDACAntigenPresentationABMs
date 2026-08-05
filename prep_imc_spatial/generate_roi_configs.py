@@ -16,7 +16,7 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 
-BASE        = Path(__file__).parent
+BASE        = Path(__file__).parent.parent
 CONFIG_DIR  = BASE / "PhysiCell/user_projects/antigen_presentation/config"
 DEPLOY_DIR  = BASE / "PhysiCell/config"   # where PhysiCell actually runs from
 ICS_DIR     = BASE / "PhysiCell/config/ics/JHH_IMC"

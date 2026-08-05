@@ -12,8 +12,8 @@ import matplotlib.ticker as ticker
 from pathlib import Path
 from assemble_initial_conditions import TYPE_MAP, _lookup_type
 
-DET_DIR = Path(__file__).parent / "qupath_detections"
-OUT     = Path(__file__).parent / "analysis/cell_size_by_type.png"
+DET_DIR = Path(__file__).parent.parent / "qupath_detections"
+OUT     = Path(__file__).parent.parent / "analysis/cell_size_by_type.png"
 
 # ── Load all detections ───────────────────────────────────────────────────────
 dfs = []

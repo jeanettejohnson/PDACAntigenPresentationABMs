@@ -3,7 +3,7 @@ import pandas as pd
 from pathlib import Path
 
 PERCENTILE   = 95   # clip substrate values above this percentile of nonzero values
-SUBSTRATES_DIR = Path(__file__).parent / "PhysiCell/user_projects/antigen_presentation/config/ics/substrates"
+SUBSTRATES_DIR = Path(__file__).parent.parent / "PhysiCell/user_projects/antigen_presentation/config/ics/substrates"
 
 csvs = sorted(p for p in SUBSTRATES_DIR.glob("*.csv") if not p.stem.endswith("_scaled"))
 if not csvs:

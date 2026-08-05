@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 
-ICS_DIR      = Path(__file__).parent / "PhysiCell/config/ics/JHH_IMC"
+ICS_DIR      = Path(__file__).parent.parent.parent / "PhysiCell/config/ics/JHH_IMC"
 LO_PCT       = 5
 HI_PCT       = 95
 SKIP_TYPES   = {"duct_filler"}   # uniform volume by design — skip

@@ -9,7 +9,7 @@ from pathlib import Path
 import pandas as pd
 
 IMMOVABLE = {'duct_filler', 'other_tissue'}
-ICS_DIR = Path(__file__).parent / 'PhysiCell/config/ics/JHH_IMC'
+ICS_DIR = Path(__file__).parent.parent.parent / 'PhysiCell/config/ics/JHH_IMC'
 
 csv_files = sorted(ICS_DIR.glob('*.csv'))
 print(f"Found {len(csv_files)} ICS files in {ICS_DIR}\n")

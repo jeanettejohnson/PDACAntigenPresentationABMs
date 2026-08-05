@@ -21,7 +21,7 @@ import pandas as pd
 from pathlib import Path
 from assemble_initial_conditions import process_roi, HEX_RADIUS_DEFAULT
 
-BASE        = Path(__file__).parent
+BASE        = Path(__file__).parent.parent
 DET_DIR     = BASE / "qupath_detections"
 GEOJSON_DIR = BASE / "PhysiCell/user_projects/antigen_presentation/config/ics/ductcoordinates"
 SUB_DIR     = BASE / "PhysiCell/user_projects/antigen_presentation/config/ics/substrates"

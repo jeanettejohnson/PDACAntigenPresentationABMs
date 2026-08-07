@@ -15,15 +15,22 @@
 #                                           #  -- e.g. via "Save config.yaml" in
 #                                           #  the Streamlit Configure page)
 #
-# Mirrors the pattern in PDACAntigenPresentationABMs/slurm/submit_driver.sh:
-# this script computes the SLURM account once and hands off to a wrap_*.sh
-# script that does the real work on the compute node.
+# NOTE: this script operates on the pdac-spatial-pipeline repo (a separate
+# Python project living at /autofs/projects-t3/fertig_pdacagmodel/pdac-spatial-pipeline
+# on thanos, not part of this Julia/PhysiCell repo). It's kept here in
+# slurm/ alongside submit_driver.sh/wrap_driver.sh for convenience and so the
+# submission pattern stays consistent, but wrap_spatial_build.sh and
+# wrap_spatial_sweep.sh cd into that other repo to do their actual work.
+#
+# Mirrors the pattern in submit_driver.sh: this script computes the SLURM
+# account once and hands off to a wrap_*.sh script that does the real work
+# on the compute node.
 set -euo pipefail
 
 module load slurm
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PIPELINE_DIR="$(dirname "$SCRIPT_DIR")"
+PIPELINE_DIR="/autofs/projects-t3/fertig_pdacagmodel/pdac-spatial-pipeline"
 mkdir -p "$SCRIPT_DIR/logs"
 
 STAGE="${1:-}"

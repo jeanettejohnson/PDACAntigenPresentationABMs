@@ -1,12 +1,15 @@
 #!/bin/bash
 # wrap_spatial_sweep.sh -- generic job script; this is what actually runs on
-# the compute node for the "sweep" stage. Takes the pipeline directory
-# (contains sweep.py, runs/run1/config.yaml) as $1.
+# the compute node for the "sweep" stage.
+#   $1 = pipeline directory (contains sweep.py)
+#   $2 = path to config.yaml, relative to pipeline dir or absolute
+#        (e.g. runs/htan_geometries/config.yaml)
 #
 # Only submit this stage after the build job has completed successfully --
-# it reuses the results/ cache rather than recomputing it. Requires
-# runs/run1/config.yaml to already exist (e.g. from clicking "Save
-# config.yaml" in the Streamlit Configure page) since sweep.py takes the
+# it reuses the results_<label>/ cache rather than recomputing it. Requires
+# that config.yaml to already exist (e.g. from clicking "Save config.yaml" in
+# the Streamlit Configure page, with Directory set to this dataset's data dir
+# and Run output directory set to runs/<label>) since sweep.py takes the
 # config path as its only positional argument, not a --data-dir flag.
 #
 # No .venv here -- there isn't one. Same interpreter resolution as
@@ -17,7 +20,7 @@ module load slurm
 module load python/3.11.4
 
 PIPELINE_DIR="$1"
-CONFIG="$PIPELINE_DIR/runs/run1/config.yaml"
+CONFIG="$2"
 
 cd "$PIPELINE_DIR"
 
@@ -28,6 +31,7 @@ fi
 
 echo "Host: $(hostname)"
 echo "python3: $(which python3)"
+echo "Config: $CONFIG"
 echo "--- memory available on this node ---"
 free -h
 echo "---"

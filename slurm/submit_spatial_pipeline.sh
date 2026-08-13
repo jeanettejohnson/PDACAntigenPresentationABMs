@@ -8,12 +8,27 @@
 # the spatial-stats cache from scratch, and each stage can get its own
 # resource request.
 #
-#   ./submit_spatial_pipeline.sh build     # build/refresh results/*.csv
-#   ./submit_spatial_pipeline.sh sweep     # full UMAP grid -> runs/run1/
-#                                           # (requires build to have finished,
-#                                           #  and runs/run1/config.yaml to exist
-#                                           #  -- e.g. via "Save config.yaml" in
-#                                           #  the Streamlit Configure page)
+#   ./submit_spatial_pipeline.sh build <label> [data-dir-override]
+#   ./submit_spatial_pipeline.sh sweep <label>
+#
+# <label> is a short tag for the dataset (e.g. htan_wellmixed, htan_geometries,
+# imc_wellmixed, imc_spatial -- the same labels submit_driver.sh's SIM_NAMES
+# uses) and drives three things:
+#   - the data dir, by convention:
+#       /local/projects-t3/fertig_pdacagmodel/<label>/PDACAntigenPresentationABMs/data/outputs/simulations
+#     pass [data-dir-override] as a 3rd arg to the "build" call if your
+#     dataset doesn't live at that conventional path
+#   - the build stage's --output-dir: results_<label>/
+#   - the sweep stage's config path: runs/<label>/config.yaml (requires the
+#     build to have finished, and that config.yaml to already exist -- e.g.
+#     via "Save config.yaml" in the Streamlit Configure page, with Directory
+#     set to this dataset's data dir and Run output directory set to
+#     runs/<label>)
+#
+# Keeping build/sweep as two separate jobs (rather than one long job) means a
+# sweep failure never forces rebuilding the spatial-stats cache from scratch,
+# and per-dataset results_<label>/runs/<label> naming means different
+# datasets' caches never collide with each other.
 #
 # NOTE: this script operates on the pdac-spatial-pipeline repo (a separate
 # Python project living at /autofs/projects-t3/fertig_pdacagmodel/pdac-spatial-pipeline
@@ -34,10 +49,23 @@ PIPELINE_DIR="/autofs/projects-t3/fertig_pdacagmodel/pdac-spatial-pipeline"
 mkdir -p "$SCRIPT_DIR/logs"
 
 STAGE="${1:-}"
-if [[ "$STAGE" != "build" && "$STAGE" != "sweep" ]]; then
-    echo "Usage: $0 {build|sweep}" >&2
+LABEL="${2:-}"
+DATA_DIR_OVERRIDE="${3:-}"
+if [[ "$STAGE" != "build" && "$STAGE" != "sweep" ]] || [[ -z "$LABEL" ]]; then
+    echo "Usage: $0 {build|sweep} <label> [data-dir-override]" >&2
+    echo "  e.g. $0 build htan_geometries" >&2
+    echo "       $0 build my_dataset /custom/path/to/simulations" >&2
+    echo "       $0 sweep htan_geometries" >&2
     exit 1
 fi
+
+if [[ -n "$DATA_DIR_OVERRIDE" ]]; then
+    DATA_DIR="$DATA_DIR_OVERRIDE"
+else
+    DATA_DIR="/local/projects-t3/fertig_pdacagmodel/${LABEL}/PDACAntigenPresentationABMs/data/outputs/simulations"
+fi
+OUTPUT_DIR="results_${LABEL}"
+CONFIG="runs/${LABEL}/config.yaml"
 
 # Same lookup as submit_driver.sh -- computed once here so the job doesn't
 # need to re-query sacctmgr itself.
@@ -53,18 +81,18 @@ if [[ "$STAGE" == "build" ]]; then
         --time=12:00:00 \
         --cpus-per-task=4 \
         --mem=64G \
-        --job-name="pdac-spatial-build" \
+        --job-name="pdac-spatial-build-${LABEL}" \
         --output="$SCRIPT_DIR/logs/%x_%j.out" \
         --error="$SCRIPT_DIR/logs/%x_%j.err" \
-        "$SCRIPT_DIR/wrap_spatial_build.sh" "$PIPELINE_DIR"
+        "$SCRIPT_DIR/wrap_spatial_build.sh" "$PIPELINE_DIR" "$DATA_DIR" "$OUTPUT_DIR"
 else
     sbatch \
         --account="$PCMM_SLURM_ACCOUNT" \
         --time=24:00:00 \
         --cpus-per-task=4 \
         --mem=64G \
-        --job-name="pdac-spatial-sweep" \
+        --job-name="pdac-spatial-sweep-${LABEL}" \
         --output="$SCRIPT_DIR/logs/%x_%j.out" \
         --error="$SCRIPT_DIR/logs/%x_%j.err" \
-        "$SCRIPT_DIR/wrap_spatial_sweep.sh" "$PIPELINE_DIR"
+        "$SCRIPT_DIR/wrap_spatial_sweep.sh" "$PIPELINE_DIR" "$CONFIG"
 fi

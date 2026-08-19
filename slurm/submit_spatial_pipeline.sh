@@ -78,7 +78,7 @@ export PCMM_SLURM_ACCOUNT=$(sacctmgr -n -P show assoc user="$(whoami)" format=ac
 if [[ "$STAGE" == "build" ]]; then
     sbatch \
         --account="$PCMM_SLURM_ACCOUNT" \
-        --time=12:00:00 \
+        --time=48:00:00 \
         --cpus-per-task=4 \
         --mem=64G \
         --job-name="pdac-spatial-build-${LABEL}" \

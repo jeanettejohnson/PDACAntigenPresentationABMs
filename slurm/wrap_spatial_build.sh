@@ -21,13 +21,15 @@
 # to user-site (~/.local/lib/python3.11/site-packages) or some other
 # mechanism that needs to be reproduced here too.
 #
-# --force is intentional here, not a default you should keep long-term: an
-# earlier disk-full crash may have left truncated/corrupt per-simulation CSVs
-# in results/, and build_combined() silently reuses any existing
-# {sim}_spatial_features.csv without checking it's complete. --force makes
-# this first post-fix run recompute everything cleanly. Drop --force on
-# later incremental runs (or switch to --only-missing) once you trust the
-# cache again.
+# --only-missing (not --force): this resumes an interrupted/timed-out build
+# rather than recomputing everything from scratch. Per-simulation CSVs
+# already written to $OUTPUT_DIR are trusted and skipped; only simulations
+# without a {sim}_spatial_features.csv yet get (re)computed. Safe to use here
+# because the simulation_id labeling fix is confirmed in place for every
+# dataset this now runs against -- unlike the original --force runs, which
+# existed specifically to recover from a disk-full crash that could have left
+# truncated/corrupt CSVs behind. If you ever suspect corrupt cached CSVs
+# again, switch back to --force for one clean run.
 set -eo pipefail
 
 module load slurm
@@ -52,5 +54,5 @@ echo "---"
 python3 -u summarize_simulations.py \
     --data-dir "$DATA_DIR" \
     --output-dir "$OUTPUT_DIR" \
-    --force \
+    --only-missing \
     --build-only

@@ -90,7 +90,7 @@ else
         --account="$PCMM_SLURM_ACCOUNT" \
         --time=24:00:00 \
         --cpus-per-task=4 \
-        --mem=64G \
+        --mem=128G \
         --job-name="pdac-spatial-sweep-${LABEL}" \
         --output="$SCRIPT_DIR/logs/%x_%j.out" \
         --error="$SCRIPT_DIR/logs/%x_%j.err" \

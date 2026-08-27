@@ -27,3 +27,28 @@ PhysiCell/custom_modules/*.o
 
 # editor
 .vscode/
+
+# TissueMosaic generated data. The glob matters: every screen writes its own
+# imc_anndata_<name>/ and imc_anndata_feat_<name>/, and the featurized ones carry the
+# full sparse-image state at ~5 GB per config -- 20 GB of them exist already.
+tissuemosaic/imc_anndata*/
+tissuemosaic/runs/
+# legacy location; tissuemosaic/runs/ecm_final still symlinks here until the
+# 1000-epoch runs finish and the directory can be moved safely
+runs/
+
+# python
+__pycache__/
+*.pyc
+
+# neptune offline logs
+.neptune/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# publisher PDFs dropped at the repo root
+/*.pdf
+
+# conda solver logs (keep the yaml, not the resolution transcript)
+conda_env_configs/*.resolved*.log

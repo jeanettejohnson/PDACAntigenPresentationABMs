@@ -15,6 +15,7 @@ Agent-based models of antigen presentation in pancreatic cancer, built on
 | `analysis/` | consume results, produce processed data |
 | `plotting/` | visualization |
 | `sanity_checks/` | verify the validity of data and code |
+| `tissuemosaic/` | self-supervised spatial modelling of the IMC cohort with [TissueMosaic](https://github.com/broadinstitute/TissueMosaic) (see its own README) |
 | `figures/`, `movies/` | generated output |
 
 The three phases below map onto that layout: **get running** (steps 1-5),

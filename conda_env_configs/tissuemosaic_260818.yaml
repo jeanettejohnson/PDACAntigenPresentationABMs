@@ -1,0 +1,136 @@
+name: tissue-mosaic-260819
+channels:
+  - conda-forge
+  - bioconda
+
+# tissue-mosaic-260819: reproducibility-pinned spec, built to match physicell-sim-260606
+# wherever the two environments overlap.
+#
+# REPIN 260819-2, due to runtime issues on the original spec:
+#   - numpy pinned to 1.26 (down from 2.4.6). This is a real compatibility requirement,
+#     not a preference, and it cascades hard: anndata, scanpy, scikit-learn, scipy,
+#     networkx, pynndescent, numba, llvmlite, and python itself all had to move to
+#     versions that still support numpy 1.x. python landed on 3.10.20 because numpy
+#     1.26.4 has no conda-forge build past ~3.12, and the rest of the stack (numba
+#     0.67.0/llvmlite 0.49.0, older anndata/scanpy) followed from there.
+#   - lightning-bolts removed entirely. It was anchoring pytorch-lightning to 1.7.7 and
+#     torchmetrics to 0.11.4 against a pytorch 2.13.0 runtime -- a likely source of the
+#     runtime issues. Replaced with explicit pytorch-lightning=1.9 / torchmetrics<1.5 /
+#     tensorboard<2.14 constraints from the new spec.
+#   - Consequence for goal 1 (max sameness with physicell-sim): alignment is now much
+#     thinner than the previous round. numpy/scipy/scikit-learn/anndata/scanpy/numba/
+#     llvmlite/libgfortran no longer match physicell-sim -- the numpy 1.26 floor forces
+#     an older ecosystem than physicell-sim's numpy 2.4.6 one. pandas=2.3.3 still
+#     matches by coincidence (it solves fine against numpy 1.26 too). The MKL/OpenMP/
+#     ARPACK/tbb/Leiden-clustering substrate is untouched by this change and still
+#     matches where it did before.
+#   - BLAS is still *mkl, not *openblas, for the same reason as before: no openblas-
+#     linked GPU pytorch build exists on conda-forge. cuda-version is still pinned to
+#     12.9, and pytorch itself is still 2.13.0 -- neither of those needed to move.
+#
+# Pinning policy (mirrors physicell-sim):
+#   1. Every package from the source spec is pinned to a resolved version, whether or
+#      not it's numerically significant.
+#   2. The numerical substrate is locked: BLAS/LAPACK, the OpenMP runtime, the Fortran
+#      runtime, the numba JIT and its LLVM backend, ARPACK, core numpy/scipy/pandas,
+#      scanpy/anndata/umap/pynndescent, leidenalg/igraph (Leiden clustering), and the
+#      CUDA/MKL/oneDNN/triton/nccl deep-learning stack.
+#   3. Versions only, no build hashes, except where a build glob locks a real variant:
+#      *mkl (BLAS impl), *llvm (OpenMP impl), nompi* (MPI-free ARPACK), and the CUDA
+#      line + python ABI on pytorch/libtorch/torchvision/triton.
+#   4. Everything else (fontconfig, xorg-*, aws-c-*, jupyter internals, etc.) is left
+#      out entirely so the solver has room to move. fast-array-utils has dropped out of
+#      this list too -- the older anndata/scanpy pair here doesn't pull it in at all.
+#
+# Solver-validated 260819-2 against the spec above (dry run, 413 packages).
+
+dependencies:
+
+  # === Python interpreter & Jupyter ================================================
+  - python=3.10.20
+  - pip=26.2.1
+  - ipykernel=7.3.0
+  - notebook=7.6.2
+
+  # === BLAS / LAPACK (MKL, not openblas -- see note above) =========================
+  - libblas=3.11.0=*mkl
+  - libcblas=3.11.0=*mkl
+  - liblapack=3.11.0=*mkl
+  - mkl=2026.1.0
+
+  # === OpenMP / threading (follows from the MKL choice) ============================
+  - _openmp_mutex=4.5=*llvm
+  - llvm-openmp=22.1.8
+  - tbb=2023.0.0
+  - threadpoolctl=3.6.0
+
+  # === Fortran runtime ===============================================================
+  - libgfortran=16.1.0
+  - libgfortran5=16.1.0
+
+  # === JIT / compiler backend (numba stack) =========================================
+  - numba=0.67.0
+  - llvmlite=0.49.0
+  - libllvm22=22.1.8
+
+  # === Eigensolver ===================================================================
+  - arpack=3.9.1=nompi*
+
+  # === Core array & numerics =========================================================
+  - numpy=1.26.4
+  - scipy=1.15.2
+  - pandas=2.3.3
+
+  # === Statistics & modeling =========================================================
+  - statsmodels=0.14.6
+  - patsy=1.0.2
+  - scikit-learn=1.7.2
+
+  # === Single-cell / spatial analysis ================================================
+  - anndata=0.11.4
+  - scanpy=1.11.5
+  - umap-learn=0.5.12
+  - pynndescent=0.6.0
+  - networkx=3.4.2
+  - array-api-compat=1.15.0
+
+  # === Graph / Leiden clustering ======================================================
+  - leidenalg=0.12.0
+  - libleidenalg=0.13.0
+  - python-igraph=1.0.0
+  - igraph=1.0.1
+
+  # === CUDA line (12.9, not 13.x) =====================================================
+  - cuda-version=12.9.*
+
+  # === Deep-learning stack (self-supervised pretraining / foundation-model eval) =====
+  - pytorch=2.13.0=cuda129_mkl_py310*
+  - libtorch=2.13.0=cuda129_mkl*
+  - torchvision=0.28.0=cuda129_py310*
+  - triton=3.7.1=cuda129py310*
+  - libmagma=2.10.0
+  - nccl=2.30.7.1
+  - onednn=3.12
+  - sleef=3.9.0
+  - lightly=1.5.26
+  - pytorch-lightning=1.9.4
+  - torchmetrics=1.4.3
+  - optree=0.19.1
+
+  # === Source-listed tooling (not numerically significant, pinned per policy #1) =====
+  - matplotlib=3.10.9
+  - seaborn=0.13.2
+  - neptune-client=1.14.0
+  - protobuf=7.35.1
+  - pyyaml=6.0.3
+  - tensorboard=2.13.0
+  - importlib_resources=7.1.0
+
+  # === pip (install last, after conda) ===============================================
+  # lightning-bolts: reintroduced via pip rather than conda
+  # colorcet: added 2026-08-20 for glasbey_dark categorical palettes (imc_tm.cluster_palette,
+  #   imc_tm.palette, imc_tm.roi_palette). Pure-python wheel, zero dependencies, so it
+  #   perturbs nothing else in the solve -- verified by pip --dry-run before installing.
+  - pip:
+    - lightning-bolts==0.7.0
+    - colorcet==3.2.1

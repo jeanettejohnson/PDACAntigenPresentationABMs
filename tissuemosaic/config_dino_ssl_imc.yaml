@@ -1,0 +1,124 @@
+# TissueMosaic DINO config for the JHH IMC PDAC cohort.
+# Forked from TissueMosaic/run/config_dino_ssl_testis.yaml; every value that
+# differs from that file is marked  # IMC.
+#
+# Build the inputs first:  python tissuemosaic/make_imc_anndata.py
+# Then:  python <TissueMosaic>/run/main_1_train_ssl.py --config tissuemosaic/config_dino_ssl_imc.yaml
+#
+# Note the priority order in main_1_train_ssl.py is  yaml > CLI > defaults,
+# so anything set here cannot be overridden from the command line.
+
+# general
+random_seed: 1
+neptune_project: local/tissuemosaic-imc   # IMC: unused in offline mode, but not someone else's project
+batch_size_per_gpu: 128        # IMC: halved from 256 to fit a 16 GB card
+check_val_every_n_epoch: 1500
+checkpoint_interval_epochs: 25
+max_time_minutes: 14400
+gradient_clip_algorithm: value
+gradient_clip_val: 0.5
+initialization_type: scratch
+remote_logging: false
+gpus: 1
+precision: 16
+num_workers: 4
+# debugging options
+profiler: passthrough
+overfit_batches: 0
+detect_anomaly: false
+deterministic: false
+
+# validation
+val_iomin_threshold: 0.0
+run_classify_regress: False
+
+# architecture
+ssl_model: dino
+backbone_type: resnet34
+image_in_ch: 10                # IMC: 10 cell types (was 9 testis types)
+head_hidden_chs:
+- 256
+- 512
+head_out_ch: 512
+head_use_bn: true
+
+# update rules
+set_temperature_using_ipr_init: False
+temperature_student_init: 0.1
+temperature_teacher_init: 0.04
+ipr_student_init: 80.0
+ipr_teacher_init: 40.0
+param_momentum_final: 0.996
+param_momentum_init: 0.996
+param_momentum_epochs_end: 1000
+
+# optimizers
+optimizer_type: adam
+min_learning_rate: 1.0E-5
+max_learning_rate: 5.0E-4
+min_weight_decay: 0.0
+max_weight_decay: 0.0
+warm_up_epochs: 100
+warm_down_epochs: 100
+max_epochs: 1000
+
+# dataset
+data_folder: /home/gavehan/PDACAntigenPresentationABMs/tissuemosaic/imc_anndata   # IMC
+n_crops_for_tissue_test: 1000
+n_crops_for_tissue_train: 1000
+overlap_for_tissue_test: 0.0
+n_element_min_for_crop: 10
+n_cuts_for_tissue_train: 1
+n_neighbours_moran: 6
+metadata_to_classify: null
+metadata_to_regress: null
+x_key: x
+y_key: y
+category_key: cell_type_proportions
+# IMC: channel order must match CELL_TYPES in tissuemosaic/make_imc_anndata.py
+categories_to_channels: {
+        'CAF': 0,
+        'apCAF': 1,
+        'CD4_Tcell': 2,
+        'CD8_Tcell': 3,
+        'epithelial_tumor_class1': 4,
+        'epithelial_tumor_class1_class2': 5,
+        'mesenchymal_tumor_class1': 6,
+        'mesenchymal_tumor_class1_class2': 7,
+        'other_tissue': 8,
+        'duct_filler': 9
+}
+status_key: "status"
+
+# transform
+# IMC: pixel_size 2.0 um is ~1/3 the 6.9 um median cell spacing, the rule of thumb
+# in SparseImage.from_anndata. With global_size 96 the crop covers 192 um and with
+# local_size 64 it covers 128 um -- a tumor nest plus its stromal cuff. The testis
+# defaults (4.0 um, 384 um crops) were tuned for Slide-seq pucks and yield only
+# ~300 non-overlapping crops across the whole 48-ROI cohort.
+pixel_size: 2.0                # IMC: was 4.0
+n_global_crops: 2
+n_local_crops: 2
+global_size: 96
+local_size: 64
+global_scale:
+- 0.8
+- 1.0
+local_scale:
+- 0.5
+- 0.8
+drop_channel_prob: 0.2
+drop_channel_relative_freq: null
+drop_spot_prob:
+- 0.1
+- 0.2
+- 0.3
+global_intensity:
+- 0.8
+- 1.2
+occlusion_fraction:
+- 0.1
+- 0.3
+rasterize_sigmas:
+- 1.0
+- 1.5

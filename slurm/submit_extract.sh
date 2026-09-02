@@ -69,6 +69,23 @@ PY
 N="$(wc -l < "$ID_LIST.new")"
 echo "$N completed simulations -> $ID_LIST ($CONCURRENCY at a time)"
 
+# Job names carry the simulation type so the guard below, and squeue, can tell
+# one clone's array from another's. Four clones now run this concurrently; a
+# bare "pdac-extract" made the first submission block the other three. The type
+# comes from the resolver, not from the directory name -- same rule as the
+# metadata itself.
+TAG="$(cd "$REPO" && python -c "
+import sys; sys.path.insert(0, '.')
+from scripts.resolve_samples import sim_type
+from pathlib import Path
+print(sim_type(Path('.')))
+" 2>/dev/null)"
+if [ -z "$TAG" ]; then
+    echo "could not determine the simulation type for $REPO" >&2
+    exit 1
+fi
+echo "simulation type: $TAG"
+
 # This cluster refuses submissions without an account. submit_driver.sh resolves
 # it the same way -- first association for this user -- rather than hardcoding it.
 ACCOUNT="$(sacctmgr -n -P show assoc user="$(whoami)" format=account | head -1)"
@@ -81,7 +98,7 @@ echo "billing to account: $ACCOUNT"
 if [ "${1:-}" = "--dry" ]; then
     rm -f "$ID_LIST.new"
     echo "would submit:"
-    echo "  stage 1  sbatch --array=1-$N%$CONCURRENCY wrap_extract.sh"
+    echo "  stage 1  sbatch --job-name=pdac-extract-$TAG --array=1-$N%$CONCURRENCY wrap_extract.sh"
     echo "  stage 2  sbatch --dependency=afterok:<stage1> wrap_finalize.sh"
     exit 0
 fi
@@ -90,9 +107,9 @@ fi
 # life of the job, so rewriting it under a running array would repoint tasks at
 # different simulations -- silently, and only when the id set had changed. Refuse
 # instead of racing.
-if squeue -h -n pdac-extract -u "$(whoami)" 2>/dev/null | grep -q .; then
+if squeue -h -n "pdac-extract-$TAG" -u "$(whoami)" 2>/dev/null | grep -q .; then
     rm -f "$ID_LIST.new"
-    echo "a pdac-extract array is already queued or running; not submitting another." >&2
+    echo "a pdac-extract-$TAG array is already queued or running; not submitting another." >&2
     echo "wait for it to finish, or scancel it first." >&2
     exit 1
 fi
@@ -101,7 +118,7 @@ mv "$ID_LIST.new" "$ID_LIST"
 # --- stage 1: one task per simulation -------------------------------------
 ARRAY_ID="$(sbatch --parsable \
     --account="$ACCOUNT" \
-    --job-name=pdac-extract \
+    --job-name="pdac-extract-$TAG" \
     --array="1-${N}%${CONCURRENCY}" \
     --cpus-per-task=2 \
     --mem=16G \
@@ -114,7 +131,7 @@ echo "stage 1  array   $ARRAY_ID  ($N tasks, $CONCURRENCY concurrent)"
 # --- stage 2: combine and validate, only if every task succeeded ----------
 FINAL_ID="$(sbatch --parsable \
     --account="$ACCOUNT" \
-    --job-name=pdac-finalize \
+    --job-name="pdac-finalize-$TAG" \
     --dependency="afterok:${ARRAY_ID}" \
     --cpus-per-task=2 \
     --mem=32G \

@@ -16,11 +16,17 @@ failed silently twice:
 So the palette now lives in custom.cpp (which upstream cannot clobber) plus
 Studio's cmaps.py, and this script checks they still agree.
 
+  3. pdacagviz added a third copy. Its SIMULATION palette exists so that a static
+     figure can match a movie frame, which it only does while the two agree.
+     Introducing another place that names these colors without wiring it in
+     here would recreate exactly the failure this script was written for.
+
 Checks
   1. every custom.cpp copy declares an identical kCellTypeColors map
   2. those names exactly match <cell_definitions> in each config that has one
   3. paint_clist is ordered to match <cell_definitions>
   4. each paint_clist RGB equals matplotlib's value for the named SVG color
+  5. pdacagviz.palettes.SIMULATION matches kCellTypeColors exactly
 
 Exit 0 if consistent, 1 otherwise. Run after touching any palette, and after
 bumping the PhysiCell or PhysiCell-Studio submodule.
@@ -41,6 +47,13 @@ CPP_SOURCES = [
 ]
 
 CMAPS = "PhysiCell-Studio/bin/cmaps.py"
+
+# pdacagviz's copy, used by static figures that need to match a movie frame.
+# Read as text rather than imported: pdacagviz is not installed, and parsing a
+# dict literal is both sufficient here and consistent with how cmaps.py above
+# is already read.
+PDACAGVIZ_PALETTES = "pdacagviz/palettes.py"
+PDACAGVIZ_NAME = "SIMULATION"
 
 # Configs whose <cell_definitions> order the palettes must follow. The first is
 # authoritative for paint_clist ordering; others are checked for name coverage.
@@ -86,6 +99,19 @@ def parse_paint_clist(path):
                 comment = c[1].strip()
             out.append((nums, comment))
     return out
+
+
+def parse_python_dict(path, name):
+    """Extract a module-level dict literal by name, without importing it."""
+    import ast
+
+    tree = ast.parse(path.read_text())
+    for node in tree.body:
+        targets = node.targets if isinstance(node, ast.Assign) else []
+        for target in targets:
+            if isinstance(target, ast.Name) and target.id == name:
+                return ast.literal_eval(node.value)
+    raise LookupError(f"no {name} assignment found in {path}")
 
 
 def config_cell_types(path):
@@ -188,14 +214,43 @@ def main():
                             f"for '{expected_color}'"
                         )
 
+    # --- 5. pdacagviz agrees with the C++ palette ---------------------------
+    pdacagviz_checked = False
+    pf = BASE / PDACAGVIZ_PALETTES
+    if not pf.is_file():
+        print(f"note: {PDACAGVIZ_PALETTES} not present, skipping")
+    else:
+        try:
+            sim = parse_python_dict(pf, PDACAGVIZ_NAME)
+        except (LookupError, ValueError, SyntaxError) as e:
+            failures.append(f"{PDACAGVIZ_PALETTES}: {e}")
+        else:
+            pdacagviz_checked = True
+            missing = sorted(set(palette_map) - set(sim))
+            extra = sorted(set(sim) - set(palette_map))
+            recolored = sorted(
+                f"{k} is {sim[k]!r}, C++ says {palette_map[k]!r}"
+                for k in set(sim) & set(palette_map)
+                if sim[k] != palette_map[k]
+            )
+            if missing or extra or recolored:
+                failures.append(
+                    f"{PDACAGVIZ_PALETTES}:{PDACAGVIZ_NAME} differs from kCellTypeColors"
+                    + (f"; missing {missing}" if missing else "")
+                    + (f"; extra {extra}" if extra else "")
+                    + (f"; recolored {recolored}" if recolored else "")
+                )
+
     if failures:
         print("FAIL: cell-type palette is inconsistent\n", file=sys.stderr)
         for f in failures:
             print(f"  - {f}", file=sys.stderr)
         return 1
 
-    print(f"OK: {len(palette_names)} cell-type colors consistent across "
-          f"{len(palettes)} C++ copies and {CMAPS}")
+    sources = f"{len(palettes)} C++ copies and {CMAPS}"
+    if pdacagviz_checked:
+        sources += f" and {PDACAGVIZ_PALETTES}"
+    print(f"OK: {len(palette_names)} cell-type colors consistent across {sources}")
     for rel, types in config_orders.items():
         print(f"    {len(types):>2} cell definitions covered in {Path(rel).parent.name}")
     return 0

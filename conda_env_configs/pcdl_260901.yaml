@@ -1,0 +1,54 @@
+name: pcdl-260901
+channels:
+  - conda-forge
+  - bioconda
+
+# pcdl: PhysiCell output conversion only. This environment never draws a figure.
+#
+# Why it is separate from physicell-sim-260606, which already satisfies every one
+# of pcdl's requirements (matplotlib, numpy, pandas>=2.2.2, scipy>=1.13.0):
+#
+#   A dry-run install of pcdl into that environment fails to solve. pcdl appears
+#   nowhere in the conflict -- it is entirely pyqt / qt-main / openssl / icu, the
+#   PhysiCell-Studio GUI stack, pinned at versions that no longer re-solve against
+#   current conda-forge. Any addition would hit it. Keeping conversion out here
+#   means the pinned figure stack in that environment is never re-solved, which is
+#   what its own pinning policy rule 3b exists to protect.
+#
+# Scope: read PhysiCell output, write h5ad and HDF5 into derived/. Nothing else.
+# Deliberately absent: matplotlib and seaborn, so that a figure cannot accidentally
+# be drawn here against an unpinned stack; vtk and requests, which pcdl lists under
+# its optional 'jakku' extra and which nothing here uses.
+
+dependencies:
+  # === Interpreter ================================================================
+  - python=3.12
+  - notebook
+  - ipykernel
+
+  # === Conversion =================================================================
+  # pcdl is on bioconda, not conda-forge. 4.1.7 is the newest packaged release; the
+  # local checkout at python-loader/ is 4.1.8 and serves as the manual.
+  - pcdl=4.1.7
+
+  # === Output formats =============================================================
+  # h5ad for the cell tables, plain HDF5 for the microenvironment fields, which are
+  # voxels x substrates and have no cell axis to annotate.
+  - anndata=0.12.16
+  - h5py
+  # anndata.experimental.concat_on_disk builds the series file without loading it.
+  # Its dense path uses dask.array -- from_array and concatenate, nothing more --
+  # so dask-core is enough. The full dask metapackage adds distributed, bokeh and
+  # pyarrow for a scheduler and dashboard this never runs.
+  - dask-core
+
+  # === Numerics ===================================================================
+  # pcdl's own floors are pandas>=2.2.2 and scipy>=1.13.0.
+  - numpy
+  - pandas=2.3.3
+  - scipy
+
+  - matplotlib
+  - seaborn
+  - colorcet
+  - dask-core

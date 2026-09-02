@@ -3,10 +3,13 @@
 
 Four files per simulation:
 
-    derived/sim_<id>_initial.h5ad   t=0 snapshot, with contact graphs in obsp
-    derived/sim_<id>_final.h5ad     terminal snapshot, with contact graphs
-    derived/sim_<id>_series.h5ad    every timepoint, every cell column, no graphs
-    derived/sim_<id>_microenv.h5    the seven substrate fields on their voxel grid
+    derived/<sim_id>-initial.h5ad   t=0 snapshot, with contact graphs in obsp
+    derived/<sim_id>-final.h5ad     terminal snapshot, with contact graphs
+    derived/<sim_id>-series.h5ad    every timepoint, every cell column, no graphs
+    derived/<sim_id>-microenv.h5    the seven substrate fields on their voxel grid
+
+where <sim_id> is <sim_type>-<nnn>-<sample_id>, e.g.
+htan_wellmixed-001-HT056P1_S1PA or imc_spatial-003-JHH317ROI3.
 
 Together about 207 MB per simulation, against 1.5 GB of raw output, and nothing
 a figure or a spatial analysis is likely to want is dropped. The point is to

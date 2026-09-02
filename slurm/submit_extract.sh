@@ -36,12 +36,15 @@ set -eo pipefail
 
 module load slurm
 
-# How many array tasks run at once. Twelve by default: the work is ~85% NFS read
-# wait, so beyond that tasks contend on a shared mount rather than going faster,
-# and each needs about 5 GB of scratch for its intermediate parts. Lower it when
-# the filesystem is busy or somebody else needs the nodes; raising it is unlikely
-# to help and will be felt by everyone else on the mount.
-CONCURRENCY="${CONCURRENCY:-12}"
+# How many array tasks run at once. The work is ~85% NFS read wait, so past a
+# dozen or so concurrent readers tasks contend on the shared mount rather than
+# going faster, and each needs about 5 GB of scratch for its intermediate parts.
+#
+# Four, not twelve, because the four simulation sets are converted from four
+# clones at the same time: the ceiling that matters is the total across all of
+# them, and 4 x 4 sits inside it where 4 x 12 would not. Raising this is felt by
+# everyone else on the mount, not just by this job.
+CONCURRENCY="${CONCURRENCY:-4}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO="$(cd "$SCRIPT_DIR/.." && pwd)"

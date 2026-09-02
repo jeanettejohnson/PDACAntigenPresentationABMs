@@ -20,10 +20,18 @@ channels:
 #      solver stack, and the numba JIT with its LLVM backend.
 #   3. Method engines are locked: numpy/scipy/pandas, scikit-learn, statsmodels with patsy,
 #      scanpy/anndata, and the umap/pynndescent neighbor and graph backends.
+#   3b. The figure stack is locked: matplotlib and seaborn. These were previously covered by
+#      rule 5 as "plotting", which held while figures were incidental output. They no longer
+#      are: pdacagviz addresses rcParam keys by name (figure.labelsize arrived in matplotlib
+#      3.6) and calls seaborn with arguments that were renamed in 0.12 and 0.13 (ci ->
+#      errorbar, bw -> bw_method, scale -> density_norm). A solver move across either
+#      boundary changes figure appearance, or fails outright, with no change to code here.
 #   4. Versions only, no build hashes. A build glob is kept only where it locks a real variant:
 #      *openblas (BLAS impl), pthreads* (OpenBLAS threading), *gnu (OpenMP mutex), nompi*
 #      (MPI-free ARPACK), *x86_64_v4 (SIMD microarch level).
-#   5. Pure I/O, plotting, notebook, and OS packages are left unpinned so the solver moves.
+#   5. Pure I/O, notebook, and OS packages are left unpinned so the solver moves. Plotting is
+#      no longer in this set; see 3b. Font and image writers (fonttools, pillow) stay unpinned
+#      because they decide output fidelity rather than API shape.
 
 dependencies:
 
@@ -112,6 +120,18 @@ dependencies:
   - umap-learn=0.5.12
   - pynndescent=0.5.13                      # ANN backend for umap / scanpy neighbors
   - networkx=3.6.1                          # graph algorithms (clustering path)
+
+  # === Figures (pdacagviz) ==========================================================
+  # In the result path for every figure, not only for display: pdacagviz addresses rcParam keys
+  # and seaborn keyword names that both moved across recent releases. matplotlib-base rather
+  # than matplotlib, because the Qt backend arrives with pyqt below.
+  - matplotlib-base=3.10.9
+  - seaborn=0.13.2
+
+  # === Development ================================================================
+  # pdacagviz's test suite. Not in the result path for any figure, so it is a floor
+  # rather than a pin -- rule 5 territory.
+  - pytest>=7
 
   # === Simulation engine (Julia model manager) ====================================
   - julia=1.12.5

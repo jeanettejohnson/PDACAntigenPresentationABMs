@@ -1,0 +1,62 @@
+# Repository-level configuration.
+#
+# pdacagviz is NOT installed at present, by decision: `pip install -e .` is on
+# hold. Until it happens, `import pdacagviz` resolves only from code started at
+# this directory, so new notebooks and scripts belong here. The first time a
+# `sys.path.insert` line is needed to work around that, it is the signal to
+# revisit rather than to add the line.
+#
+# The [project] table below is kept ready so that the install, when it does
+# happen, is one command with no restructuring: pdacagviz sits at the repository
+# root as a flat package, which setuptools discovers with no configuration.
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pdacagviz"
+version = "0.1.0.dev0"
+description = "Figure styling and charts for the PDAC antigen-presentation model"
+requires-python = ">=3.10"
+
+# Floors, not pins. These are the oldest each package offers for python 3.10,
+# so for matplotlib, pandas and numpy the constraint is what conda-forge
+# builds rather than anything in this code. Only seaborn's floor is an API
+# decision: below 0.11 the function names change (distplot rather than
+# histplot and kdeplot), which is a different library to write against.
+#
+# The environment yaml pins exact versions for reproducibility. These floors
+# say what the code can run on; that file says what it is run on.
+dependencies = [
+    "matplotlib>=3.4",
+    "seaborn>=0.11.1",
+    "pandas>=1.3",
+    "numpy>=1.21",
+]
+
+[tool.setuptools]
+packages = ["pdacagviz", "pdacagviz.plots"]
+
+# Project-wide plotting defaults. Checked in, so a poster build is a one-line
+# commit rather than a flag someone has to remember. Read once at import to
+# seed pdacagviz.settings; an explicit call argument still wins over it.
+[tool.pdacagviz]
+mode = "article"
+palette = "atlas"
+
+[tool.pytest.ini_options]
+# testpaths is the line that matters. Without it a bare `pytest` at this
+# directory walks into the PhysiCell and PhysiCell-Studio submodules and tries
+# to collect their python. Pointing collection at one directory is what lets
+# the tests live here instead of in a separate repository.
+testpaths = ["pdacagviz/tests"]
+
+# Deprecations become errors so the next matplotlib or seaborn rename arrives
+# as a red test on an ordinary day rather than as a figure that silently
+# changed, or a script that dies the week of a deadline.
+filterwarnings = [
+    "error::DeprecationWarning",
+    "error::PendingDeprecationWarning",
+    "error::FutureWarning",
+]

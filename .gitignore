@@ -27,3 +27,9 @@ PhysiCell/custom_modules/*.o
 
 # editor
 .vscode/
+derived/
+derived.old/
+__pycache__/
+figures/*.png
+figures/*.pdf
+*.egg-info/

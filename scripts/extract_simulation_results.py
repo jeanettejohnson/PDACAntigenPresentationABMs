@@ -17,6 +17,7 @@ conda_env_configs/pcdl_260901.yaml for why they are kept apart.
 """
 
 import argparse
+import re
 import sqlite3
 import subprocess
 import sys
@@ -74,6 +75,13 @@ def identity():
     return _IDENTITY
 
 
+#: Patient is the leading letters+digits of the sample: HT056P1_S1PA -> HT056,
+#: JHH317ROI1 -> JHH317. Jeanette's build_sample_mapping_v2.py splits on "P1_"
+#: instead, which agrees on HTAN but has nothing to split on for IMC; the regex
+#: covers both cohorts and resolves all 242 sample ids with none left over.
+PATIENT_RE = re.compile(r"^([A-Za-z]+\d+)")
+
+
 def describe(simulation_id):
     """Every identity field for one simulation.
 
@@ -91,10 +99,12 @@ def describe(simulation_id):
             ).fetchone()
         if row:
             geometry = f"c{row[1]}_{geo.get(int(row[0]), 'unknown')}"
+    match = PATIENT_RE.match(str(sample)) if sample else None
     return {
         "sim_type": kind,
         "sim_db_id": int(simulation_id),
         "sample_id": sample,
+        "patient_id": match.group(1) if match else sample,
         "geometry": geometry,
         "sim_id": f"{kind}-{simulation_id:03d}-{sample}",
     }

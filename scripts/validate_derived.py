@@ -55,15 +55,30 @@ def path_for(sim, kind):
 
 
 def main():
+    # --only-present validates a partial archive: every cross-simulation check
+    # still runs, but a simulation with no files is skipped instead of counted
+    # as missing. For a subset run -- a smoke test, or a look at a batch still
+    # in progress -- completeness is the one property that is legitimately not
+    # true yet, and without this the other checks cannot be seen past it.
+    only_present = "--only-present" in sys.argv
+
     problems, expected = [], completed_ids()
-    print(f"checking {len(expected)} completed simulations against {DERIVED}")
+    if only_present:
+        print(f"checking the {len(expected)} completed simulations against "
+              f"{DERIVED} (subset mode: absent simulations are skipped, "
+              f"completeness is NOT checked)")
+    else:
+        print(f"checking {len(expected)} completed simulations against {DERIVED}")
 
     present, identities, var_signature, sizes = [], {}, {}, {}
     var_names = {}
     for sim in expected:
         missing = [k for k in KINDS if not path_for(sim, k).exists()]
         if missing:
-            problems.append(f"sim {sim}: missing {', '.join(missing)}")
+            # A simulation absent entirely is "not converted yet" in subset
+            # mode; one with some files but not others is broken either way.
+            if not (only_present and len(missing) == len(KINDS)):
+                problems.append(f"sim {sim}: missing {', '.join(missing)}")
             continue
         present.append(sim)
 
@@ -146,7 +161,11 @@ def main():
             print(f"  - {p}", file=sys.stderr)
         return 1
 
-    print("\nOK: archive complete, identities unique, layout consistent")
+    if only_present:
+        print(f"\nOK: the {len(present)} converted simulation(s) are "
+              "self-consistent -- completeness not checked (--only-present)")
+    else:
+        print("\nOK: archive complete, identities unique, layout consistent")
     return 0
 
 

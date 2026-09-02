@@ -69,6 +69,24 @@ with sqlite3.connect(db) as con:
         print(sid)
 PY
 
+# --limit N converts only the first N ids. For a smoke test that exercises the
+# real path -- array, dependency, combine, validate -- on a few simulations
+# rather than the whole set, so the finalize stage is proven before a run long
+# enough that a failure there is expensive.
+LIMIT=""
+DRY=""
+for i in "$@"; do
+    case "$i" in
+        --limit=*) LIMIT="${i#--limit=}" ;;
+        --dry)     DRY=1 ;;
+        *) echo "unknown argument: $i (expected --dry or --limit=N)" >&2; exit 2 ;;
+    esac
+done
+if [ -n "$LIMIT" ]; then
+    head -n "$LIMIT" "$ID_LIST.new" > "$ID_LIST.trim" && mv "$ID_LIST.trim" "$ID_LIST.new"
+    echo "LIMIT: converting only the first $LIMIT simulation(s)"
+fi
+
 N="$(wc -l < "$ID_LIST.new")"
 echo "$N completed simulations -> $ID_LIST ($CONCURRENCY at a time)"
 
@@ -98,7 +116,7 @@ if [ -z "$ACCOUNT" ]; then
 fi
 echo "billing to account: $ACCOUNT"
 
-if [ "${1:-}" = "--dry" ]; then
+if [ -n "$DRY" ]; then
     rm -f "$ID_LIST.new"
     echo "would submit:"
     echo "  stage 1  sbatch --job-name=pdac-extract-$TAG --array=1-$N%$CONCURRENCY wrap_extract.sh"
@@ -141,7 +159,7 @@ FINAL_ID="$(sbatch --parsable \
     --time=01:00:00 \
     --output="$SCRIPT_DIR/logs/finalize_%j.out" \
     --error="$SCRIPT_DIR/logs/finalize_%j.err" \
-    "$SCRIPT_DIR/wrap_finalize.sh" "$REPO")"
+    "$SCRIPT_DIR/wrap_finalize.sh" "$REPO" "$([ -n "$LIMIT" ] && echo --only-present)")"
 echo "stage 2  finalize $FINAL_ID  (after array succeeds)"
 echo
 echo "watch:   squeue -j $ARRAY_ID,$FINAL_ID"

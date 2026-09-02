@@ -17,6 +17,7 @@ module load slurm
 source /usr/local/packages/miniconda3/etc/profile.d/conda.sh
 
 REPO="$1"
+VALIDATE_ARGS="${2:-}"   # e.g. --only-present, for a --limit run
 cd "$REPO"
 
 # Combine in the pcdl environment. The per-simulation files were written by the
@@ -31,4 +32,4 @@ python -u scripts/combine_snapshots.py
 conda activate physicell-sim-260606
 echo
 echo "=== validating archive ==="
-python -u scripts/validate_derived.py
+python -u scripts/validate_derived.py $VALIDATE_ARGS

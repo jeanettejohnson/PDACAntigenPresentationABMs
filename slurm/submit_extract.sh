@@ -55,7 +55,7 @@ mkdir -p "$REPO/derived" "$SCRIPT_DIR/logs"
 # Ids come from the model manager's status table, not from a range: they run
 # 1-77 with gaps, and only Completed runs have output worth converting.
 source /usr/local/packages/miniconda3/etc/profile.d/conda.sh
-conda activate pcdl-260901
+conda activate physicell-analysis-260901
 python - "$REPO" > "$ID_LIST.new" <<'PY'
 import sqlite3, sys
 from pathlib import Path

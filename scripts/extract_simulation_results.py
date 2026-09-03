@@ -15,8 +15,10 @@ Together about 207 MB per simulation, against 1.5 GB of raw output, and nothing
 a figure or a spatial analysis is likely to want is dropped. The point is to
 read the raw output once: everything downstream reads derived/.
 
-Run in the `pcdl-260901` environment, never in physicell-sim-260606 -- see
-conda_env_configs/pcdl_260901.yaml for why they are kept apart.
+Run in the `physicell-analysis-260901` environment, never in physicell-sim-260606
+-- see conda_env_configs/physicell_analysis_260901.yaml for why they are kept
+apart. That environment covers conversion, figures and spatial analysis; the
+simulation environment is left alone so its pinned figure stack never re-solves.
 """
 
 import argparse

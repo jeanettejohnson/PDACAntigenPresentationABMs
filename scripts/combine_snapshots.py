@@ -17,11 +17,11 @@ same object costs one line at read time and no duplicate archive:
 Identity moves from uns into obs here, because it varies per row once several
 simulations share a file.
 
-Run in the `pcdl-260901` environment, not the analysis one. The per-simulation files
-were written by anndata 0.13.3 under pandas 3.0, so their string columns are
-nullable-string arrays; anndata 0.12.16 reads those happily but refuses to write
-them without an opt-in flag meant to protect anndata < 0.11 users. Writing with
-the same version that produced the inputs avoids the question entirely.
+Run in `physicell-analysis-260901`, the same environment that wrote the
+per-simulation files. That is the point rather than a convenience: string columns
+written by one anndata version can be nullable-string arrays another version reads
+happily but refuses to write back without an opt-in flag. Keeping one writer across
+the archive avoids the question entirely.
 """
 
 import sys

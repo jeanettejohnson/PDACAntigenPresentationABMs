@@ -20,16 +20,15 @@ REPO="$1"
 VALIDATE_ARGS="${2:-}"   # e.g. --only-present, for a --limit run
 cd "$REPO"
 
-# Combine in the pcdl environment. The per-simulation files were written by the
-# anndata version living there, and keeping one writer across the archive avoids
-# the nullable-string encoding mismatch documented in combine_snapshots.py.
-conda activate pcdl-260901
+# One environment for both steps now. This used to combine in the conversion
+# environment and validate in the analysis one, because checking the archive where
+# it will actually be read is the only version of the check that means anything.
+# physicell-analysis-260901 is now both, so the switch is gone rather than being
+# preserved for its own sake.
+conda activate physicell-analysis-260901
 echo "=== combining snapshots ==="
 python -u scripts/combine_snapshots.py
 
-# Validate in the analysis environment instead -- checking the archive where it
-# will actually be read is the only version of this check that means anything.
-conda activate physicell-sim-260606
 echo
 echo "=== validating archive ==="
 python -u scripts/validate_derived.py $VALIDATE_ARGS

@@ -15,7 +15,7 @@ set -eo pipefail
 module load slurm
 
 source /usr/local/packages/miniconda3/etc/profile.d/conda.sh
-conda activate pcdl-260901
+conda activate physicell-analysis-260901
 
 REPO="$1"
 ID_LIST="$REPO/derived/.extract_ids"

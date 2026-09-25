@@ -28,6 +28,7 @@ initializeModelManager(
 )
 
 include(joinpath(@__DIR__, "hpc_setup.jl"))
+include(joinpath(@__DIR__, "caf_mhc2.jl"))
 
 # Random layouts per ROI to run; must not exceed the n_layouts the prep script
 # built.
@@ -41,6 +42,15 @@ const N_REPLICATES_PER_LAYOUT = 1
 # all 48; set it for a test run. A later full run reuses the runs already made
 # (use_previous=true).
 const SUBSET = String[]
+
+# CAF contact -> MHC-II induction rate, per minute (see caf_mhc2.jl). 0 is the
+# baseline and leaves the runs as they are; 2.3e-4 enables it at about one
+# conversion per 3 days of contact. Enabled runs are separate monads, so they
+# never replace the baseline ones.
+const CAF_MHC2_RATE = 0.0
+const CAF_MHC2_VARIATIONS = cafMhc2Variations(CAF_MHC2_RATE)
+CAF_MHC2_RATE > 0 && println("CAF-contact MHC-II induction on: $(CAF_MHC2_RATE) /min")
+checkBaseRulesets("antigen_presentation")
 
 const PROJ = "antigen_presentation"
 const DOMAIN_HALF_WIDTH = 800.0
@@ -101,7 +111,7 @@ for row in eachrow(df), k in 1:N_LAYOUTS
     # (see run_imc_spatial.jl).
     cv = CoVariation(dvs)
 
-    trial_piece = createTrial(inputs, cv; n_replicates=N_REPLICATES_PER_LAYOUT, use_previous=true)
+    trial_piece = createTrial(inputs, cv, CAF_MHC2_VARIATIONS...; n_replicates=N_REPLICATES_PER_LAYOUT, use_previous=true)
     push!(samplings, Sampling(trial_piece; n_replicates=N_REPLICATES_PER_LAYOUT, use_previous=true))
 
     println("Queuing $roi layout $k  domain +/-$(DOMAIN_HALF_WIDTH)")

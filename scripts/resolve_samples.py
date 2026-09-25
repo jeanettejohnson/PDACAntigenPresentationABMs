@@ -309,8 +309,10 @@ def sim_type(base):
     base = Path(base)
     with sqlite3.connect(base / "data" / "pcmm.db") as con:
         sims = pd.read_sql("SELECT * FROM simulations", con)
-    if sims.ic_cell_id.nunique() > 1:
-        # Per-run initial conditions: imc_spatial or the rebuilt imc_wellmixed.
+    if (sims.ic_substrate_id.fillna(-1) != -1).any():
+        # Per-run substrate ICs: imc_spatial or the rebuilt imc_wellmixed (HTAN
+        # runs have none). Keyed on the substrate IC rather than on how many
+        # cell IC folders there are, so a one-ROI test run is typed correctly.
         # Told apart by the ECM each run started from, not by folder names:
         # well-mixed runs start from a uniform field, spatial runs from the
         # ROI's ECM image.

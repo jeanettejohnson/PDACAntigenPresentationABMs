@@ -54,6 +54,56 @@ SIMULATION_TO_ATLAS = {
 #: Structural rows of the IMC spatial ICs; the assignment summary leaves them out.
 STRUCTURAL = {"other_tissue", "duct_filler"}
 
+#: The CAF-contact MHC-II rules (README, "CAF contact induces MHC-II"): the
+#: (cell type, behaviour) pairs they drive and the contacts that drive them.
+CAF_MHC2_BEHAVIOURS = {
+    ("epithelial_tumor_class1", "transform to epithelial_tumor_class1_class2"),
+    ("mesenchymal_tumor_class1", "transform to mesenchymal_tumor_class1_class2"),
+    ("epithelial_tumor", "transform to epithelial_tumor_class2"),
+    ("mesenchymal_tumor", "transform to mesenchymal_tumor_class2"),
+}
+CAF_MHC2_SIGNALS = {"contact with CAF", "contact with apCAF"}
+
+
+def caf_mhc2_rate(output_dir):
+    """The CAF-contact MHC-II rate (1/min) a run used, read from the run itself.
+
+    PhysiCell writes the rules it parsed to `cell_rules_parsed.csv` in every
+    output folder, so this reports what the run did rather than how it was
+    launched. 0.0 is the baseline, and also what a run from before the rules
+    existed did. Raises if the rules are only partly present or disagree.
+    """
+    path = Path(output_dir) / "cell_rules_parsed.csv"
+    rates, seen = set(), set()
+    for line in path.read_text().splitlines():
+        if not line.strip() or line.startswith("//"):
+            continue
+        fields = [f.strip() for f in line.split(",")]
+        if len(fields) >= 5 and (fields[0], fields[3]) in CAF_MHC2_BEHAVIOURS \
+                and fields[1] in CAF_MHC2_SIGNALS:
+            rates.add(float(fields[4]))
+            seen.add((fields[0], fields[1]))
+    if not seen:
+        return 0.0
+    expected = {(c, s) for c, _ in CAF_MHC2_BEHAVIOURS for s in CAF_MHC2_SIGNALS}
+    if seen != expected or len(rates) != 1:
+        raise ValueError(f"{path}: CAF-contact MHC-II rules are incomplete or disagree "
+                         f"(rows {sorted(seen)}, rates {sorted(rates)})")
+    return rates.pop()
+
+
+def _has_substrate_ics(base):
+    """Whether the runs have their own substrate ICs: the IMC sets do, HTAN's do not.
+
+    This, not the number of cell IC folders, is what marks a run as having its
+    own initial condition -- a one-ROI IMC test run has a single folder too.
+    """
+    with sqlite3.connect(base / "data" / "pcmm.db") as con:
+        return con.execute(
+            "SELECT COUNT(*) FROM simulations "
+            "WHERE ic_substrate_id IS NOT NULL AND ic_substrate_id != -1"
+        ).fetchone()[0] > 0
+
 
 def _direct(base):
     """simulation -> ic_cells folder name, where each run has its own folder."""
@@ -62,11 +112,10 @@ def _direct(base):
             "SELECT s.simulation_id, ic.folder_name FROM simulations s "
             "JOIN ic_cells ic USING(ic_cell_id)"
         ).fetchall()
-    names = {name for _, name in rows}
-    # One shared folder means this route says nothing -- every run would get the
-    # same name, which is the htan_wellmixed case that made the earlier version
-    # of this plan wrong.
-    if len(names) < 2:
+    # A shared folder says nothing -- every run would get the same name, which
+    # is the htan_wellmixed case that made the earlier version of this plan
+    # wrong. The IMC sets give each run its own folder.
+    if not _has_substrate_ics(base):
         return {}
     return dict(rows)
 
@@ -98,7 +147,7 @@ def _by_composition(base, cohort):
     """simulation -> sample, by matching starting counts against the cohort."""
     variations = _variation_counts(base)
     if not variations or cohort is None:
-        return {}
+        return {}, [], []
 
     # The run's own recipe decides which types matter. htan_wellmixed seeds 14,
     # htan_geometries 15, imc_wellmixed 8 -- reading it beats assuming it.
@@ -272,8 +321,10 @@ def sim_type(base):
     base = Path(base)
     with sqlite3.connect(base / "data" / "pcmm.db") as con:
         sims = pd.read_sql("SELECT * FROM simulations", con)
-    if sims.ic_cell_id.nunique() > 1:
-        # Per-run initial conditions: imc_spatial or the rebuilt imc_wellmixed.
+    if _has_substrate_ics(base):
+        # Per-run substrate ICs: imc_spatial or the rebuilt imc_wellmixed (HTAN
+        # runs have none). Keyed on the substrate IC rather than on how many
+        # cell IC folders there are, so a one-ROI test run is typed correctly.
         # Told apart by the ECM each run started from, not by folder names:
         # well-mixed runs start from a uniform field, spatial runs from the
         # ROI's ECM image.

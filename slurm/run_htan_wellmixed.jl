@@ -12,6 +12,7 @@ initializeModelManager(
 )
 
 include(joinpath(@__DIR__, "hpc_setup.jl"))
+include(joinpath(@__DIR__, "caf_mhc2.jl"))
 
 df = CSV.read(joinpath(@__DIR__, "..", "assignmentsummary_HTAN_singlecell.csv"), DataFrame)
 
@@ -19,6 +20,15 @@ df = CSV.read(joinpath(@__DIR__, "..", "assignmentsummary_HTAN_singlecell.csv"),
 # patient's samples). Empty runs every sample; set it for a test run. A later
 # full run reuses the runs already made (use_previous=true).
 const SUBSET = String[]
+
+# CAF contact -> MHC-II induction rate, per minute (see caf_mhc2.jl). 0 is the
+# baseline and leaves the runs as they are; 2.3e-4 enables it at about one
+# conversion per 3 days of contact. Enabled runs are separate monads, so they
+# never replace the baseline ones.
+const CAF_MHC2_RATE = 0.0
+const CAF_MHC2_VARIATIONS = cafMhc2Variations(CAF_MHC2_RATE)
+CAF_MHC2_RATE > 0 && println("CAF-contact MHC-II induction on: $(CAF_MHC2_RATE) /min")
+checkBaseRulesets("antigen_presentation_htan_singlecell")
 
 if !isempty(SUBSET)
     df = df[[any(p -> startswith(s, p), SUBSET) for s in df.sample_id], :]
@@ -79,7 +89,7 @@ for row in eachrow(df)
 
     println("Queuing $sample  CAF=$caf_count  CD4=$cd4_count  CD8=$cd8_count  Treg=$treg_count Epithelial=$epithelial_count  Mesenchymal=$mesenchymal_count  PDAC_unspecified=$pdac_unspecified_count")
     flush(stdout)
-    push!(monads, createTrial(inputs, cv; n_replicates=1, use_previous=true))
+    push!(monads, createTrial(inputs, cv, CAF_MHC2_VARIATIONS...; n_replicates=1, use_previous=true))
 end
 
 trial = createTrial(monads)

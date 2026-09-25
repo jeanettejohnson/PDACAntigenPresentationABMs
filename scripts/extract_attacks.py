@@ -53,7 +53,7 @@ X_COLUMNS = ("attack_target", "total_attack_time",
 
 ATTACKER = "CD8_Tcell"
 
-IDENTITY = ("sim_type", "sim_db_id", "sample_id", "patient_id", "geometry", "sim_id")
+IDENTITY = ("sim_type", "sim_db_id", "sample_id", "patient_id", "geometry", "caf_mhc2_rate", "sim_id")
 
 
 def _decode(values):

@@ -102,6 +102,25 @@ constant at the top of the simulation's `run_*.jl` script: sample IDs or ROI
 keys, or prefixes of them (`["HT056"]`, `["JHH368"]`). Empty runs everything. A
 later full run reuses the runs already made, so a test run is not wasted.
 
+#### CAF contact induces MHC-II
+
+Both rulesets carry eight rows for it: a tumour cell touching a CAF or an apCAF
+gains class II -- `*_tumor_class1` -> `*_tumor_class1_class2` and `*_tumor` ->
+`*_tumor_class2`, in both lineages -- at a fixed rate, with no way back. Their
+rate is 0 in `base_rulesets.csv`, so the baseline runs are unaffected.
+
+To switch it on for a simulation set, set `CAF_MHC2_RATE` at the top of its
+`run_*.jl` (per minute; `2.3e-4` is about one conversion per 3 days of contact,
+from the 24-96 h rise of HLA-DR in PDO-CAF co-culture, Guinn et al., Cancer Res
+2024). The rate is applied as a PCMM rules variation, so enabled runs are
+separate from the baseline ones and never replace them. Every run records the
+rate it used in `output/cell_rules_parsed.csv`, and the extracted data carry it
+as `caf_mhc2_rate`.
+
+PCMM writes `base_rulesets.xml` from `base_rulesets.csv` only when the XML is
+missing, so the drivers stop if the XML is older than the CSV. It is generated
+and gitignored: delete it to have it rebuilt.
+
 That is enough to get results. Everything below is optional.
 
 ---

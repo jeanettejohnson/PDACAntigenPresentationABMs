@@ -92,6 +92,19 @@ def caf_mhc2_rate(output_dir):
     return rates.pop()
 
 
+def _has_substrate_ics(base):
+    """Whether the runs have their own substrate ICs: the IMC sets do, HTAN's do not.
+
+    This, not the number of cell IC folders, is what marks a run as having its
+    own initial condition -- a one-ROI IMC test run has a single folder too.
+    """
+    with sqlite3.connect(base / "data" / "pcmm.db") as con:
+        return con.execute(
+            "SELECT COUNT(*) FROM simulations "
+            "WHERE ic_substrate_id IS NOT NULL AND ic_substrate_id != -1"
+        ).fetchone()[0] > 0
+
+
 def _direct(base):
     """simulation -> ic_cells folder name, where each run has its own folder."""
     with sqlite3.connect(base / "data" / "pcmm.db") as con:
@@ -99,11 +112,10 @@ def _direct(base):
             "SELECT s.simulation_id, ic.folder_name FROM simulations s "
             "JOIN ic_cells ic USING(ic_cell_id)"
         ).fetchall()
-    names = {name for _, name in rows}
-    # One shared folder means this route says nothing -- every run would get the
-    # same name, which is the htan_wellmixed case that made the earlier version
-    # of this plan wrong.
-    if len(names) < 2:
+    # A shared folder says nothing -- every run would get the same name, which
+    # is the htan_wellmixed case that made the earlier version of this plan
+    # wrong. The IMC sets give each run its own folder.
+    if not _has_substrate_ics(base):
         return {}
     return dict(rows)
 
@@ -135,7 +147,7 @@ def _by_composition(base, cohort):
     """simulation -> sample, by matching starting counts against the cohort."""
     variations = _variation_counts(base)
     if not variations or cohort is None:
-        return {}
+        return {}, [], []
 
     # The run's own recipe decides which types matter. htan_wellmixed seeds 14,
     # htan_geometries 15, imc_wellmixed 8 -- reading it beats assuming it.
@@ -309,7 +321,7 @@ def sim_type(base):
     base = Path(base)
     with sqlite3.connect(base / "data" / "pcmm.db") as con:
         sims = pd.read_sql("SELECT * FROM simulations", con)
-    if (sims.ic_substrate_id.fillna(-1) != -1).any():
+    if _has_substrate_ics(base):
         # Per-run substrate ICs: imc_spatial or the rebuilt imc_wellmixed (HTAN
         # runs have none). Keyed on the substrate IC rather than on how many
         # cell IC folders there are, so a one-ROI test run is typed correctly.

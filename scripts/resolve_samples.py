@@ -54,6 +54,43 @@ SIMULATION_TO_ATLAS = {
 #: Structural rows of the IMC spatial ICs; the assignment summary leaves them out.
 STRUCTURAL = {"other_tissue", "duct_filler"}
 
+#: The CAF-contact MHC-II rules (README, "CAF contact induces MHC-II"): the
+#: (cell type, behaviour) pairs they drive and the contacts that drive them.
+CAF_MHC2_BEHAVIOURS = {
+    ("epithelial_tumor_class1", "transform to epithelial_tumor_class1_class2"),
+    ("mesenchymal_tumor_class1", "transform to mesenchymal_tumor_class1_class2"),
+    ("epithelial_tumor", "transform to epithelial_tumor_class2"),
+    ("mesenchymal_tumor", "transform to mesenchymal_tumor_class2"),
+}
+CAF_MHC2_SIGNALS = {"contact with CAF", "contact with apCAF"}
+
+
+def caf_mhc2_rate(output_dir):
+    """The CAF-contact MHC-II rate (1/min) a run used, read from the run itself.
+
+    PhysiCell writes the rules it parsed to `cell_rules_parsed.csv` in every
+    output folder, so this reports what the run did rather than how it was
+    launched. 0.0 is the baseline, and also what a run from before the rules
+    existed did. Raises if the rules are only partly present or disagree.
+    """
+    path = Path(output_dir) / "cell_rules_parsed.csv"
+    rates, seen = set(), set()
+    for line in path.read_text().splitlines():
+        if not line.strip() or line.startswith("//"):
+            continue
+        fields = [f.strip() for f in line.split(",")]
+        if len(fields) >= 5 and (fields[0], fields[3]) in CAF_MHC2_BEHAVIOURS \
+                and fields[1] in CAF_MHC2_SIGNALS:
+            rates.add(float(fields[4]))
+            seen.add((fields[0], fields[1]))
+    if not seen:
+        return 0.0
+    expected = {(c, s) for c, _ in CAF_MHC2_BEHAVIOURS for s in CAF_MHC2_SIGNALS}
+    if seen != expected or len(rates) != 1:
+        raise ValueError(f"{path}: CAF-contact MHC-II rules are incomplete or disagree "
+                         f"(rows {sorted(seen)}, rates {sorted(rates)})")
+    return rates.pop()
+
 
 def _direct(base):
     """simulation -> ic_cells folder name, where each run has its own folder."""

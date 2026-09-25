@@ -44,7 +44,7 @@ def combine(kind):
         a = ad.read_h5ad(path)
         # The extract already writes identity into obs, so nothing to reconstruct
         # from uns here -- but older files may predate that, hence the fallback.
-        for key in ("sim_type", "sim_db_id", "sample_id", "patient_id", "geometry", "sim_id"):
+        for key in ("sim_type", "sim_db_id", "sample_id", "patient_id", "geometry", "caf_mhc2_rate", "sim_id"):
             if key not in a.obs.columns:
                 a.obs[key] = str(a.uns.get(key, ""))
         # obs_names are <cell>_<time>: unique within a simulation, not across.
@@ -57,7 +57,7 @@ def combine(kind):
 
     combined = ad.concat(parts, axis=0, join="outer", merge="unique",
                          pairwise=True)
-    for key in ("sim_type", "sim_db_id", "sample_id", "patient_id", "geometry", "sim_id"):
+    for key in ("sim_type", "sim_db_id", "sample_id", "patient_id", "geometry", "caf_mhc2_rate", "sim_id"):
         if key in combined.obs.columns:
             combined.obs[key] = combined.obs[key].astype("category")
     combined.uns["source"] = f"{len(parts)} per-simulation {kind} snapshots"

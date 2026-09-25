@@ -94,6 +94,8 @@ def describe(simulation_id):
     "_", so the stem splits unambiguously -- no field value contains a dash.
     """
     kind, mapping, geo = identity()
+    from scripts.resolve_samples import caf_mhc2_rate  # identity() put BASE on sys.path
+
     sample = mapping.get(simulation_id)
     geometry = None
     if geo:
@@ -111,6 +113,7 @@ def describe(simulation_id):
         "sample_id": sample,
         "patient_id": match.group(1) if match else sample,
         "geometry": geometry,
+        "caf_mhc2_rate": caf_mhc2_rate(OUTPUTS / str(simulation_id) / "output"),
         "sim_id": f"{kind}-{simulation_id:03d}-{sample}",
     }
 

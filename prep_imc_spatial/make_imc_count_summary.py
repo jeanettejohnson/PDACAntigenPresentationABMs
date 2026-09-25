@@ -8,9 +8,7 @@ Output: assignmentsummary_JHH_IMC.csv, written next to this script, one row per
 ROI (sample_id), one column per PhysiCell cell type, values = cell counts.
 
 Source files are the canonical, git-tracked ICs in
-PhysiCell/user_projects/antigen_presentation/config/ics/JHH_IMC/ -- NOT the
-repo-root PhysiCell/config/ics/JHH_IMC, which is a stale older generation with a
-different schema:
+PhysiCell/user_projects/antigen_presentation/config/ics/JHH_IMC/:
   - *.csv : 'type' column is already in PhysiCell type space -> counted directly
   - *.txt : raw QuPath export; 'Classification' mapped via TYPE_MAP, then counted
 

@@ -19,7 +19,8 @@ from pathlib import Path
 BASE        = Path(__file__).parent.parent
 CONFIG_DIR  = BASE / "PhysiCell/user_projects/antigen_presentation/config"
 DEPLOY_DIR  = BASE / "PhysiCell/config"   # where PhysiCell actually runs from
-ICS_DIR     = BASE / "PhysiCell/config/ics/JHH_IMC"
+ICS_DIR     = CONFIG_DIR / "ics/JHH_IMC"
+ICS_DIR_REL = "config/ics/JHH_IMC"   # written into each config: where make load copies ICS_DIR
 SUB_DIR     = CONFIG_DIR / "ics/substrates"
 TEMPLATE    = CONFIG_DIR / "PhysiCell_settings.xml"
 
@@ -129,7 +130,7 @@ for ics_stem, ics_path in sorted(ics_files.items()):
     # machines (confirmed broken twice already: old laptop -> new Mac ->
     # HPC cluster all have different absolute home paths).
     sub_path_rel = sub_path.relative_to(BASE / "PhysiCell")
-    ics_dir_rel = ICS_DIR.relative_to(BASE / "PhysiCell")
+    ics_dir_rel = ICS_DIR_REL
     config_dir_rel = CONFIG_DIR.relative_to(BASE / "PhysiCell")
 
     # substrate IC filename — force enabled="true" regardless of template value

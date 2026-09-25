@@ -33,21 +33,21 @@ inputs = InputFolders(
     ic_cell = "antigen_presentation_htan_singlecell"
 )
 
-# Six spatial geometry configurations (c1–c6)
+# Five spatial geometry configurations (c1–c5)
 # Each group (immune, CAF, tumor) is placed in an annulus defined by inner/outer radius (μm).
 # c1: immune outer ring, CAF inner ring, tumor inner ring
 # c2: immune outer ring, CAF outer ring, tumor inner ring
 # c3: immune inner ring, CAF inner ring, tumor outer ring
 # c4: immune inner ring, CAF outer ring, tumor outer ring
 # c5: immune outer ring, CAF inner ring, tumor outer ring
-# c6: immune outer ring, CAF outer ring, tumor inner ring (same as c2 — placeholder, adjust as needed)
+# c6 was dropped (2026-09-25): it had c2's exact radii, so it only ever ran a
+# replicate of c2. c1–c5 keep spatial_config_index 1–5, as before.
 const GEOMETRY_CONFIGS = [
     (label="c1", imm_inner=200.0, imm_outer=400.0, caf_inner=  0.0, caf_outer=200.0, tum_inner=  0.0, tum_outer=200.0),
     (label="c2", imm_inner=200.0, imm_outer=400.0, caf_inner=200.0, caf_outer=400.0, tum_inner=  0.0, tum_outer=200.0),
     (label="c3", imm_inner=  0.0, imm_outer=200.0, caf_inner=  0.0, caf_outer=200.0, tum_inner=200.0, tum_outer=400.0),
     (label="c4", imm_inner=  0.0, imm_outer=200.0, caf_inner=200.0, caf_outer=400.0, tum_inner=200.0, tum_outer=400.0),
     (label="c5", imm_inner=200.0, imm_outer=400.0, caf_inner=  0.0, caf_outer=200.0, tum_inner=200.0, tum_outer=400.0),
-    (label="c6", imm_inner=200.0, imm_outer=400.0, caf_inner=200.0, caf_outer=400.0, tum_inner=  0.0, tum_outer=200.0),
 ]
 
 # Build every (sample, geometry) monad up front (no jobs submitted yet), then

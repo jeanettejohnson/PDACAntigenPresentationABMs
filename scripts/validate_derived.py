@@ -115,10 +115,11 @@ def main():
 
     # Every simulation should be a distinct point in the study design. That is
     # the sample alone for the three sets where one simulation is one sample,
-    # but htan_geometries runs each of 73 samples through six arrangements, so
-    # there the sample repeats by design and the pair is what must be unique.
-    # The geometry's c-prefix is load-bearing: c2 and c6 are the same layout,
-    # and keying on the descriptive part alone collapses 438 runs to 365.
+    # but htan_geometries runs each of 73 samples through five arrangements
+    # (c1-c5), so there the sample repeats by design and the pair is what must
+    # be unique. Keep the c-prefix in the key: archives made before 2026-09-25
+    # also ran c6, which had c2's exact layout, and without the prefix those
+    # 438 runs collapse to 365.
     for key, count in Counter(identities.values()).items():
         if count > 1:
             claimants = [s for s, v in identities.items() if v == key]

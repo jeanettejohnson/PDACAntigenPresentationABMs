@@ -9,9 +9,14 @@ regenerated whenever simulations are added. htan_geometries has none at all.
 
 Everything needed to reconstruct it is already in each clone, by two routes:
 
-1. **Directly.** Where a run has its own initial-condition folder, the folder is
-   named for the sample: imc_spatial's 48 simulations point at `ic_cells` rows
-   called `JHH317ROI1` and so on. Nothing to infer.
+1. **From the run's own IC file.** Where each run has its own initial-condition
+   folder -- imc_spatial, and imc_wellmixed since it was rebuilt on the IMC
+   spatial model -- that folder's `cells.csv` lists every seeded cell. Its
+   type counts, leaving out the structural `other_tissue` and `duct_filler`
+   rows, equal one row of the IMC assignment summary exactly (all 48 are
+   distinct). imc_spatial's folders are also named for the ROI, which is kept
+   as a cross-check; the well-mixed folders (`<ROI>_wellmixed_r<k>`) are not
+   relied on.
 
 2. **By composition.** Where every run shares one initial-condition folder and
    differs by variation -- htan_wellmixed, imc_wellmixed, htan_geometries --
@@ -46,8 +51,12 @@ SIMULATION_TO_ATLAS = {
 }
 
 
+#: Structural rows of the IMC spatial ICs; the assignment summary leaves them out.
+STRUCTURAL = {"other_tissue", "duct_filler"}
+
+
 def _direct(base):
-    """simulation -> sample, where each run has its own ic_cells folder."""
+    """simulation -> ic_cells folder name, where each run has its own folder."""
     with sqlite3.connect(base / "data" / "pcmm.db") as con:
         rows = con.execute(
             "SELECT s.simulation_id, ic.folder_name FROM simulations s "
@@ -132,6 +141,38 @@ def _by_composition(base, cohort):
     return resolved, ambiguous, unmatched
 
 
+def _by_ic_contents(base, folders, cohort):
+    """simulation -> sample, by counting the types in each run's own cells.csv."""
+    types = [c for c in cohort.columns if c not in ("sample_id", "patient_id")]
+    by_counts = {}
+    for row in cohort.itertuples(index=False):
+        key = tuple(int(getattr(row, t)) for t in types)
+        by_counts.setdefault(key, []).append(row.sample_id)
+
+    counts_of = {}
+    for folder in set(folders.values()):
+        path = base / "data" / "inputs" / "ics" / "cells" / folder / "cells.csv"
+        if path.is_file():
+            seeded = pd.read_csv(path, usecols=["type"])["type"]
+            counts_of[folder] = seeded[~seeded.isin(STRUCTURAL)].value_counts().to_dict()
+
+    resolved, ambiguous, unmatched = {}, [], []
+    for sim, folder in folders.items():
+        counts = counts_of.get(folder)
+        # A type the summary does not carry means this summary did not seed it.
+        if counts is None or set(counts) - set(types):
+            unmatched.append(sim)
+            continue
+        candidates = by_counts.get(tuple(counts.get(t, 0) for t in types), [])
+        if len(candidates) == 1:
+            resolved[sim] = candidates[0]
+        elif candidates:
+            ambiguous.append((sim, candidates))
+        else:
+            unmatched.append(sim)
+    return resolved, ambiguous, unmatched
+
+
 def _from_csv(base):
     """simulation -> sample, from a checked-in mapping if one is present.
 
@@ -158,6 +199,22 @@ def resolve(base, cohorts=None):
     base = Path(base)
     direct = _direct(base)
     if direct:
+        best = ({}, [], [], None)
+        for label, cohort in (cohorts or []):
+            resolved, ambiguous, unmatched = _by_ic_contents(base, direct, cohort)
+            if len(resolved) > len(best[0]):
+                best = (resolved, ambiguous, unmatched, label)
+        resolved, ambiguous, unmatched, label = best
+        if resolved:
+            # Where a folder is named for a sample (imc_spatial), it must agree.
+            samples = {s for _, c in (cohorts or []) for s in c["sample_id"]}
+            clash = {s: (direct[s], resolved[s]) for s in resolved
+                     if direct[s] in samples and direct[s] != resolved[s]}
+            if clash:
+                raise ValueError(f"IC contents and folder names disagree: {list(clash.items())[:5]}")
+            return resolved, {"route": f"per-run IC contents ({label})",
+                              "resolved": len(resolved),
+                              "ambiguous": ambiguous, "unmatched": unmatched}
         return direct, {"route": "ic_cells folder", "resolved": len(direct),
                         "ambiguous": [], "unmatched": []}
 
@@ -193,6 +250,18 @@ COMPARTMENT = {
 }
 
 
+def _uniform_starting_ecm(base, sims):
+    """Whether each run's starting ECM field is uniform, one entry per IC folder."""
+    with sqlite3.connect(base / "data" / "pcmm.db") as con:
+        folders = dict(con.execute("SELECT ic_substrate_id, folder_name FROM ic_substrates"))
+    out = []
+    for sid in sims.ic_substrate_id.dropna().unique():
+        path = base / "data" / "inputs" / "ics" / "substrates" / folders.get(int(sid), "") / "substrates.csv"
+        if path.is_file():
+            out.append(pd.read_csv(path, usecols=["ecm"])["ecm"].nunique() == 1)
+    return out
+
+
 def sim_type(base):
     """Which of the four simulation sets this clone holds.
 
@@ -204,7 +273,15 @@ def sim_type(base):
     with sqlite3.connect(base / "data" / "pcmm.db") as con:
         sims = pd.read_sql("SELECT * FROM simulations", con)
     if sims.ic_cell_id.nunique() > 1:
-        return "imc_spatial"            # per-run initial conditions
+        # Per-run initial conditions: imc_spatial or the rebuilt imc_wellmixed.
+        # Told apart by the ECM each run started from, not by folder names:
+        # well-mixed runs start from a uniform field, spatial runs from the
+        # ROI's ECM image.
+        uniform = _uniform_starting_ecm(base, sims)
+        if any(uniform) and not all(uniform):
+            raise ValueError("this clone mixes uniform and imaged starting ECM; "
+                             "expected one IMC simulation set per clone")
+        return "imc_wellmixed" if uniform and all(uniform) else "imc_spatial"
 
     for db in (base / "data" / "inputs" / "configs").glob("*/config_variations.db"):
         cfg = pd.read_sql("SELECT * FROM config_variations", sqlite3.connect(db))

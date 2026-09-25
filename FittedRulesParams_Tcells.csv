@@ -1,8 +1,8 @@
 Row,Ly12
-base_val (um/min),0.649298757545331
-min_val (um/min),0.341617939207519
-max_val (um/min),3.99982944720815
-decrease_ec50 (mg/mL),1.47330079592695
-decrease_pow,5.99997847505371
-increase_ec50 (mg/mL),4.00519889054483
-increase_pow,9.99984402032847
+base_val (um/min),0.6665
+min_val (um/min),0
+max_val (um/min),3.458
+decrease_ec50 (mg/mL),2.2253
+decrease_pow,2.73931
+increase_ec50 (mg/mL),3.6751
+increase_pow,8.6551

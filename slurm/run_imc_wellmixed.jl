@@ -1,6 +1,21 @@
-# HPC-compatible copy of ../test_run_wellmixed_imc.jl -- submits to SLURM
-# instead of running locally. Full sample pool. See hpc_setup.jl for the job
-# options.
+# PCMM runner for IMC well-mixed: the IMC spatial model with the cells placed
+# at random. Same config, rules, custom code and per-ROI cell volumes as
+# run_imc_spatial.jl; only the initial condition differs:
+#
+#   - cells: <ROI>_wellmixed_r<k>, one random layout per replicate, built by
+#     prep_imc_spatial/make_imc_wellmixed_ics.py -- the ROI's biological cells
+#     in a disk with the ROI's free area, no overlaps, measured volumes kept
+#   - ECM: <ROI>_wellmixed, uniform at the mean of the ROI's ECM image
+#   - domain: +/-800 um, as HTAN well-mixed
+#
+# Each layout is its own IC folder, so PCMM treats it as its own monad rather
+# than a replicate of the others: PCMM counts runs as replicates only when they
+# share input folders. To add replicates, raise n_layouts in the prep script,
+# run it, commit the new layouts, raise N_LAYOUTS here and run this again --
+# PCMM reuses the runs already made.
+#
+# The previous version, which ran these samples on the HTAN config and ruleset,
+# is slurm/archive/run_imc_wellmixed_htan_config.jl.
 
 ENV["PHYSICELL_CPP"] = "g++"
 
@@ -14,42 +29,84 @@ initializeModelManager(
 
 include(joinpath(@__DIR__, "hpc_setup.jl"))
 
-df = CSV.read(joinpath(@__DIR__, "..", "prep_imc_spatial", "assignmentsummary_JHH_IMC.csv"), DataFrame)
+# Random layouts per ROI to run; must not exceed the n_layouts the prep script
+# built.
+const N_LAYOUTS = 1
 
-inputs = InputFolders(
-    "antigen_presentation_htan_singlecell",   # config
-    "antigen_presentation_htan_singlecell";   # custom_code
-    rulesets_collection = "antigen_presentation_htan_singlecell",
-    ic_cell = "antigen_presentation_htan_singlecell"
-)
+# PhysiCell-seed replicates of each layout (the configs use
+# random_seed=system_clock). 1 means each layout runs once.
+const N_REPLICATES_PER_LAYOUT = 1
 
-# All columns except these bookkeeping ones are cell-type count columns; each
-# name must match a <cell_patches name=...> entry in the well-mixed cells.xml.
-bookkeeping = ["sample_id", "total"]
-cell_types = filter(n -> !(n in bookkeeping), names(df))
+# ROIs to run, as ROI keys or prefixes ("JHH368" is its 4 ROIs). Empty runs
+# all 48; set it for a test run. A later full run reuses the runs already made
+# (use_previous=true).
+const SUBSET = String[]
 
-# Build every sample's monad up front (no jobs submitted yet), then run them
-# all together in one Trial so the worker pool can submit up to
-# setNumberOfParallelSims concurrently instead of waiting for each sample's
-# job to finish before starting the next.
-monads = []
-for row in eachrow(df)
-    sample = row.sample_id
+const PROJ = "antigen_presentation"
+const DOMAIN_HALF_WIDTH = 800.0
 
-    # ECM initial condition on, matching the original well-mixed driver.
-    dvs = DiscreteVariation[DiscreteVariation(configPath("ecm", "initial_condition"), 1)]
+const SPEC_PATH = joinpath(@__DIR__, "..", "prep_imc_spatial", "imc_spatial_roi_specs.csv")
+const IC_ROOT = joinpath(@__DIR__, "..", "data", "inputs", "ics")
 
-    for ct in cell_types
-        n = round(Int, row[ct])
-        push!(dvs, DiscreteVariation(icCellsPath(ct, "annulus", 1, "number"), n))
-    end
+df = CSV.read(SPEC_PATH, DataFrame)
 
-    cv = CoVariation(dvs...)
-
-    println("Queuing $sample  ($(round(Int, row.total)) cells across $(length(cell_types)) types)")
-    flush(stdout)
-    push!(monads, createTrial(inputs, cv; n_replicates=1, use_previous=true))
+if !isempty(SUBSET)
+    df = df[[any(p -> startswith(roi, p), SUBSET) for roi in df.roi], :]
+    isempty(df) && error("SUBSET $SUBSET matched none of the ROIs in $(basename(SPEC_PATH)).")
+    println("SUBSET $SUBSET -> $(nrow(df)) of 48 ROIs: ", join(df.roi, ", "))
 end
 
-trial = createTrial(monads)
+# Fail before queuing anything if a layout or ECM field was never built.
+missing_inputs = String[]
+for roi in df.roi, k in 1:N_LAYOUTS
+    cells = joinpath(IC_ROOT, "cells", "$(roi)_wellmixed_r$(k)", "cells.csv")
+    isfile(cells) || push!(missing_inputs, cells)
+end
+for roi in df.roi
+    ecm = joinpath(IC_ROOT, "substrates", "$(roi)_wellmixed", "substrates.csv")
+    isfile(ecm) || push!(missing_inputs, ecm)
+end
+if !isempty(missing_inputs)
+    error("""
+          Missing IMC well-mixed inputs ($(length(missing_inputs)), first: $(first(missing_inputs))).
+          Build them with prep_imc_spatial/make_imc_wellmixed_ics.py (n_layouts >= N_LAYOUTS = $N_LAYOUTS).
+          """)
+end
+
+# The varying cell types come from the spec table, as in run_imc_spatial.jl.
+volume_columns = filter(n -> occursin(r"^vol_.+_total$", n), names(df))
+cell_types = [match(r"^vol_(.+)_total$", c).captures[1] for c in volume_columns]
+
+samplings = Sampling[]
+for row in eachrow(df), k in 1:N_LAYOUTS
+    roi = String(row.roi)
+
+    inputs = InputFolders(
+        PROJ,                                     # config
+        PROJ;                                     # custom_code
+        rulesets_collection = PROJ,
+        ic_cell             = "$(roi)_wellmixed_r$(k)",
+        ic_substrate        = "$(roi)_wellmixed",
+    )
+
+    dvs = DiscreteVariation[]
+    append!(dvs, domainVariations(x_min=-DOMAIN_HALF_WIDTH, x_max=DOMAIN_HALF_WIDTH,
+                                  y_min=-DOMAIN_HALF_WIDTH, y_max=DOMAIN_HALF_WIDTH))
+    for ct in cell_types
+        push!(dvs, DiscreteVariation(configPath(ct, "total"),   row[Symbol("vol_$(ct)_total")]))
+        push!(dvs, DiscreteVariation(configPath(ct, "nuclear"), row[Symbol("vol_$(ct)_nuclear")]))
+    end
+
+    # One parameter set per ROI: pass the vector so the values move together
+    # (see run_imc_spatial.jl).
+    cv = CoVariation(dvs)
+
+    trial_piece = createTrial(inputs, cv; n_replicates=N_REPLICATES_PER_LAYOUT, use_previous=true)
+    push!(samplings, Sampling(trial_piece; n_replicates=N_REPLICATES_PER_LAYOUT, use_previous=true))
+
+    println("Queuing $roi layout $k  domain +/-$(DOMAIN_HALF_WIDTH)")
+    flush(stdout)
+end
+
+trial = Trial(samplings)
 PhysiCellModelManager.run(trial)

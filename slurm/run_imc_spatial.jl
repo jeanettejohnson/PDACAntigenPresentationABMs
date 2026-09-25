@@ -40,15 +40,10 @@ include(joinpath(@__DIR__, "hpc_setup.jl"))
 # random_seed=system_clock, so replicates differ only by randomness.
 const N_REPLICATES = 1
 
-# Optional subset filter, for test runs. Set IMC_SPATIAL_ROIS to a
-# comma-separated list of ROI keys or prefixes; sbatch propagates the
-# environment, so this works through submit_driver.sh:
-#
-#     IMC_SPATIAL_ROIS=JHH368 ./submit_driver.sh 4     # the 4 JHH368 ROIs
-#     IMC_SPATIAL_ROIS=JHH368ROI1,JHH372ROI3 ./submit_driver.sh 4
-#
-# Unset (the default) runs all 48.
-const ROI_FILTER = get(ENV, "IMC_SPATIAL_ROIS", "")
+# ROIs to run, as ROI keys or prefixes ("JHH368" is its 4 ROIs). Empty runs
+# all 48; set it for a test run. A later full run reuses the runs already made
+# (use_previous=true).
+const SUBSET = String[]
 
 const PROJ = "antigen_presentation"
 
@@ -69,13 +64,10 @@ end
 
 df = CSV.read(SPEC_PATH, DataFrame)
 
-if !isempty(ROI_FILTER)
-    patterns = strip.(split(ROI_FILTER, ","; keepempty=false))
-    df = df[[any(p -> startswith(roi, p), patterns) for roi in df.roi], :]
-    if isempty(df)
-        error("IMC_SPATIAL_ROIS=$ROI_FILTER matched none of the ROIs in $(basename(SPEC_PATH)).")
-    end
-    println("ROI filter '$ROI_FILTER' -> $(nrow(df)) of 48 ROIs: ", join(df.roi, ", "))
+if !isempty(SUBSET)
+    df = df[[any(p -> startswith(roi, p), SUBSET) for roi in df.roi], :]
+    isempty(df) && error("SUBSET $SUBSET matched none of the ROIs in $(basename(SPEC_PATH)).")
+    println("SUBSET $SUBSET -> $(nrow(df)) of 48 ROIs: ", join(df.roi, ", "))
 end
 
 # Derive the varying cell types from the spec table rather than restating them,

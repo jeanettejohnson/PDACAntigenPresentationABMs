@@ -38,6 +38,17 @@ If the ICs are rebuilt, **stage 5 must be re-run**: the PCMM `ic_cell`/`ic_subst
 folders are copies one step downstream, and `run_imc_spatial.jl` cannot detect that
 they have gone stale.
 
+## Edge rows are clipped into the domain
+
+Each ROI's domain is the extent of its ECM image, but QuPath places the centroids
+of cells cut by the image border up to ~6 µm outside that frame (1,809 rows across
+the 48 ROIs, 312 of them biological cells). PhysiCell freezes any cell it loads
+outside the domain: it never moves, divides or dies, yet is written out as live.
+Stage 5 therefore moves each such row `CLIP_INSET_UM` (0.5 µm) inside the edge as it
+copies the IC, and stops if any row would move more than `CLIP_MAX_MOVE_UM`
+(20 µm). Every other row is copied byte for byte, and the tracked ICs under
+`user_projects/antigen_presentation/config/ics/JHH_IMC` stay as assembled.
+
 ## Known issue: stale root IC directory
 
 `generate_roi_configs.py`, `plot_initial_counts_imc.py` and `plot_apcaf_vs_tcells.py`

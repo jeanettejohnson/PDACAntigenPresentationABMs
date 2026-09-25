@@ -17,7 +17,7 @@ configs only 33 differ across ROIs, and they split cleanly into
 Outputs
   data/inputs/configs/antigen_presentation/          PhysiCell_settings.xml (base)
   data/inputs/rulesets_collections/antigen_presentation/  base_rulesets.csv
-  data/inputs/ics/cells/<ROI>/cells.csv              x48
+  data/inputs/ics/cells/<ROI>/cells.csv              x48 (edge rows clipped, below)
   data/inputs/ics/substrates/<ROI>/substrates.csv    x48
   imc_spatial_roi_specs.csv                          one row per ROI, 30 varying values
 
@@ -33,9 +33,17 @@ Source-of-truth caveat: the cell-position <folder> in the ROI configs reads
 stale. This script takes the *filename* from the config (authoritative for
 which file a ROI uses) but resolves it against the git-tracked
 user_projects/antigen_presentation/config/ics/JHH_IMC.
+
+Edge rows: QuPath places the centroids of cells cut by the image border up to
+~6 um outside the frame, and the ROI domain is the frame. PhysiCell freezes any
+cell it loads outside the domain -- it never moves, divides or dies, yet is
+written out as live at every save. So each cells.csv row outside its ROI's
+domain is moved CLIP_INSET_UM inside the edge while copying; every other row is
+copied byte for byte. The tracked ICs in the fork stay as assembled.
 """
 
 import csv
+import math
 import re
 import shutil
 import sys
@@ -80,6 +88,11 @@ VARYING_VOLUME_TYPES = [
 ]
 
 DOMAIN_KEYS = ["x_min", "x_max", "y_min", "y_max"]
+
+# Rows outside the domain are moved this far inside the edge (um). A move
+# larger than CLIP_MAX_MOVE_UM is not a border cell, so it stops the script.
+CLIP_INSET_UM = 0.5
+CLIP_MAX_MOVE_UM = 20.0
 
 ROI_FROM_CONFIG = re.compile(r"^PhysiCell_settings_(.+)\.xml$")
 
@@ -132,6 +145,52 @@ def read_spec(roi, path):
 def copy_into(src: Path, dest_dir: Path, dest_name: str):
     dest_dir.mkdir(parents=True, exist_ok=True)
     shutil.copy2(src, dest_dir / dest_name)
+
+
+def copy_cells_clipped(src: Path, dest_dir: Path, spec):
+    """Copy a cells.csv, moving rows outside the ROI domain just inside it.
+
+    Inside means PhysiCell's own test (bounds inclusive). Only the coordinate
+    that is out of range is rewritten; every other byte is copied as is, so a
+    diff shows the moved rows and nothing else. Returns (rows moved, largest
+    move in um).
+    """
+    x_min, x_max, y_min, y_max = (float(spec[k]) for k in DOMAIN_KEYS)
+    with open(src, newline="") as fh:
+        raw = fh.read()
+    newline = "\r\n" if "\r\n" in raw else "\n"
+    lines = raw.split(newline)
+    header = lines[0].split(",")
+    ix, iy = header.index("x"), header.index("y")
+
+    moved, largest = 0, 0.0
+    for n in range(1, len(lines)):
+        if not lines[n]:
+            continue
+        fields = lines[n].split(",")
+        x, y = float(fields[ix]), float(fields[iy])
+        new_x = min(max(x, x_min + CLIP_INSET_UM), x_max - CLIP_INSET_UM) if not x_min <= x <= x_max else x
+        new_y = min(max(y, y_min + CLIP_INSET_UM), y_max - CLIP_INSET_UM) if not y_min <= y <= y_max else y
+        if (new_x, new_y) == (x, y):
+            continue
+        move = math.hypot(new_x - x, new_y - y)
+        if move > CLIP_MAX_MOVE_UM:
+            raise SystemExit(
+                f"{spec['roi']}: row {n} at ({x}, {y}) is {move:.1f} um outside the domain; "
+                f"more than CLIP_MAX_MOVE_UM={CLIP_MAX_MOVE_UM} is not a border cell."
+            )
+        if new_x != x:
+            fields[ix] = repr(new_x)
+        if new_y != y:
+            fields[iy] = repr(new_y)
+        lines[n] = ",".join(fields)
+        moved += 1
+        largest = max(largest, move)
+
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    with open(dest_dir / "cells.csv", "w", newline="") as fh:
+        fh.write(newline.join(lines))
+    return moved, largest
 
 
 def main():
@@ -207,11 +266,15 @@ def main():
     print(f"rulesets      -> {(rules / 'base_rulesets.csv').relative_to(BASE)}")
 
     # --- per-ROI initial conditions ---------------------------------------
+    total_moved, largest = 0, 0.0
     for spec in specs:
         roi = spec["roi"]
-        copy_into(spec["_cell_src"], INPUTS / "ics" / "cells" / roi, "cells.csv")
+        moved, move = copy_cells_clipped(spec["_cell_src"], INPUTS / "ics" / "cells" / roi, spec)
+        total_moved += moved
+        largest = max(largest, move)
         copy_into(spec["_substrate_src"], INPUTS / "ics" / "substrates" / roi, "substrates.csv")
-    print(f"ic_cell       -> {len(specs)} folders under data/inputs/ics/cells/")
+    print(f"ic_cell       -> {len(specs)} folders under data/inputs/ics/cells/  "
+          f"({total_moved} edge rows moved inside the domain, largest move {largest:.2f} um)")
     print(f"ic_substrate  -> {len(specs)} folders under data/inputs/ics/substrates/")
 
     # --- spec table --------------------------------------------------------

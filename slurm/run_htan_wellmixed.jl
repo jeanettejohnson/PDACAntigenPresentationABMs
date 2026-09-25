@@ -15,6 +15,17 @@ include(joinpath(@__DIR__, "hpc_setup.jl"))
 
 df = CSV.read(joinpath(@__DIR__, "..", "assignmentsummary_HTAN_singlecell.csv"), DataFrame)
 
+# Samples to run, as sample IDs or ID prefixes ("HT056" is all of that
+# patient's samples). Empty runs every sample; set it for a test run. A later
+# full run reuses the runs already made (use_previous=true).
+const SUBSET = String[]
+
+if !isempty(SUBSET)
+    df = df[[any(p -> startswith(s, p), SUBSET) for s in df.sample_id], :]
+    isempty(df) && error("SUBSET $SUBSET matched none of the samples.")
+    println("SUBSET $SUBSET -> $(nrow(df)) samples: ", join(df.sample_id, ", "))
+end
+
 inputs = InputFolders(
     "antigen_presentation_htan_singlecell",   # config
     "antigen_presentation_htan_singlecell";   # custom_code

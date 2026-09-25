@@ -96,12 +96,10 @@ All four simulations run straight from a fresh clone -- every PCMM input they
 need (configs, rulesets, custom code, and the 48 per-ROI IC folders for
 imc_spatial) is tracked in `data/inputs/`. No generation step is required.
 
-To run a subset of imc_spatial ROIs, set `IMC_SPATIAL_ROIS`:
-
-```
-IMC_SPATIAL_ROIS=JHH368 ./submit_driver.sh 4          # the 4 JHH368 ROIs
-IMC_SPATIAL_ROIS=JHH368,JHH369 ./submit_driver.sh 4   # two donors
-```
+To run a subset -- a test run before the full set, say -- edit the `SUBSET`
+constant at the top of the simulation's `run_*.jl` script: sample IDs or ROI
+keys, or prefixes of them (`["HT056"]`, `["JHH368"]`). Empty runs everything. A
+later full run reuses the runs already made, so a test run is not wasted.
 
 That is enough to get results. Everything below is optional.
 

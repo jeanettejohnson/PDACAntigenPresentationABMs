@@ -4,7 +4,7 @@ plot_apcaf_vs_tcells.py
 Scatter: CAF-family type vs total T cell count per ROI initial condition.
 T cells = CD4_Tcell + CD8_Tcell + Treg + CD8_exhausted
 
-Reads:  PhysiCell/config/ics/JHH_IMC/*.csv
+Reads:  PhysiCell/user_projects/antigen_presentation/config/ics/JHH_IMC/*.csv
 Writes: analysis/apcaf_vs_tcells_ic.png
         analysis/caf_vs_tcells_ic.png
 """
@@ -19,7 +19,7 @@ import matplotlib.cm as cm
 from pathlib import Path
 from adjustText import adjust_text
 
-ICS_DIR = Path(__file__).parent.parent / "PhysiCell/config/ics/JHH_IMC"
+ICS_DIR = Path(__file__).parent.parent / "PhysiCell/user_projects/antigen_presentation/config/ics/JHH_IMC"
 
 SKIP_SUFFIXES = {"rectangle", "withTreg", "withductfiller", "ductfiller",
                  "withTregs", "not_movable"}

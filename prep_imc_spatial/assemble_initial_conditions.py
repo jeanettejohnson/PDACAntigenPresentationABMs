@@ -3,15 +3,10 @@ assemble_initial_conditions.py
 -------------------------------
 Converts a QuPath detection TXT + optional duct GeoJSON into a PhysiCell ICS CSV.
 
-Each ICS is written to TWO locations:
-  - PhysiCell/user_projects/antigen_presentation/config/ics/JHH_IMC/  (CANONICAL_OUTDIR)
-      git-tracked source of truth; setup_imc_spatial_pcmm.py reads this one
-  - PhysiCell/config/ics/JHH_IMC/                                     (OUTDIR)
-      the 'make load' copy PhysiCell runs from directly
-
-Writing both at once keeps them in step. Note the repo-root copy also contains an
-older generation of files with a different schema that this script does not
-produce, so the two directories are not interchangeable.
+Each ICS is written to
+  PhysiCell/user_projects/antigen_presentation/config/ics/JHH_IMC/  (CANONICAL_OUTDIR)
+the git-tracked source of truth that setup_imc_spatial_pcmm.py reads. 'make load'
+copies it to PhysiCell/config/ics/JHH_IMC/, the folder the ROI configs name.
 
 Run interactively (GUI file-picker) or import process_roi() for batch use.
 """
@@ -63,7 +58,6 @@ HEX_RADIUS_DEFAULT = 4.0    # half the spacing → ~4× more cells in the same a
 # under user_projects/antigen_presentation -- otherwise regenerated ICS data
 # silently never reaches version control (see generate_roi_configs.py, which
 # already writes both copies for the same reason).
-OUTDIR           = Path(__file__).parent.parent / 'PhysiCell/config/ics/JHH_IMC'
 CANONICAL_OUTDIR = Path(__file__).parent.parent / 'PhysiCell/user_projects/antigen_presentation/config/ics/JHH_IMC'
 
 # Induced types whose ICS volume should match their parent type's distribution.
@@ -226,19 +220,15 @@ def process_roi(ann_path, geojson_path=None, img_w=1100.0, img_h=1100.0,
           f"x[{combined.x.min():.0f},{combined.x.max():.0f}]  "
           f"y[{combined.y.min():.0f},{combined.y.max():.0f}]")
 
-    # Save (both the deploy copy and the tracked canonical copy)
-    OUTDIR.mkdir(parents=True, exist_ok=True)
+    # Save the tracked canonical copy
     CANONICAL_OUTDIR.mkdir(parents=True, exist_ok=True)
     m = re.match(r'(JHH\d+R?)_?ROI0*(\d+)', ann_path.name)
     out_stem = f"{m.group(1)}ROI{m.group(2)}" if m else \
                ann_path.stem.replace('_for_physicell', '').replace('_summary', '')
-    out_path = OUTDIR / f"{out_stem}.csv"
     canonical_path = CANONICAL_OUTDIR / f"{out_stem}.csv"
-    combined.to_csv(out_path, index=False)
     combined.to_csv(canonical_path, index=False)
-    print(f"  ✓ Saved → {out_path}")
     print(f"  ✓ Saved → {canonical_path}")
-    return out_path
+    return canonical_path
 
 
 # ── Interactive (GUI) entry point ─────────────────────────────────────────────

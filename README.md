@@ -149,10 +149,6 @@ for per-script detail.
 - **Stage 1 is not reproducible here.** The ECM channel TIFF → `_ecm.csv` step
   (`archive/scaleimage.py`) has a hardcoded personal path and a GUI file picker.
   Only its committed outputs exist.
-- **Three scripts read a stale directory.** `generate_roi_configs.py` and two
-  plotters read the repo-root `PhysiCell/config/ics/JHH_IMC`, which is an older
-  generation with a different schema (22 files, volumes all `NaN`) rather than the
-  canonical `user_projects/.../ics/JHH_IMC` (50 files). Repoint before relying on them.
 
 ---
 

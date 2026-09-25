@@ -8,7 +8,7 @@ Layout: legend → dendrogram → bars → cluster strip.
   1. duct_filler + other_tissue excluded  → initial_cell_counts_imc.png
   2. all types included                   → initial_cell_counts_imc_all_types.png
 
-Reads:  PhysiCell/config/ics/JHH_IMC/*.csv  (canonical files only)
+Reads:  PhysiCell/user_projects/antigen_presentation/config/ics/JHH_IMC/*.csv  (canonical files only)
 """
 
 import re
@@ -23,7 +23,7 @@ from matplotlib.gridspec import GridSpec
 from scipy.cluster.hierarchy import linkage, dendrogram, fcluster
 from pathlib import Path
 
-ICS_DIR    = Path(__file__).parent.parent / "PhysiCell/config/ics/JHH_IMC"
+ICS_DIR    = Path(__file__).parent.parent / "PhysiCell/user_projects/antigen_presentation/config/ics/JHH_IMC"
 N_CLUSTERS = 5
 
 SKIP_SUFFIXES = {"rectangle", "withTreg", "withductfiller", "ductfiller",

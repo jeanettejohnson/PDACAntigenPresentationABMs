@@ -24,9 +24,9 @@ Stage 2 is where antigen presentation is encoded: `TYPE_MAP` in
 `CD4 T cell: FOXP3` -> `Treg`, ...), and duct polygons are hex-packed with
 `duct_filler` cells.
 
-Stage 2 writes **two** copies of each cell IC: the repo-root `PhysiCell/config/ics/JHH_IMC`
-(the `make load` copy) and `PhysiCell/user_projects/antigen_presentation/config/ics/JHH_IMC`
-(tracked, canonical). Stage 5 reads the canonical one.
+Stage 2 writes each cell IC to `PhysiCell/user_projects/antigen_presentation/config/ics/JHH_IMC`
+(tracked, canonical), which stages 3–5 and the plotters read. `make load` copies it to
+`PhysiCell/config/ics/JHH_IMC`, the folder the ROI configs name.
 
 ### QC / inspection
 
@@ -71,22 +71,6 @@ Stage 5 therefore moves each such row `CLIP_INSET_UM` (0.5 µm) inside the edge 
 copies the IC, and stops if any row would move more than `CLIP_MAX_MOVE_UM`
 (20 µm). Every other row is copied byte for byte, and the tracked ICs under
 `user_projects/antigen_presentation/config/ics/JHH_IMC` stay as assembled.
-
-## Known issue: stale root IC directory
-
-`generate_roi_configs.py`, `plot_initial_counts_imc.py` and `plot_apcaf_vs_tcells.py`
-read the repo-root `PhysiCell/config/ics/JHH_IMC`, which is **stale** -- an older
-generation with a different schema, not merely an unprocessed copy:
-
-|          | rows | columns                                    | volume     |
-|----------|------|--------------------------------------------|------------|
-| root     | 5202 | 9 (incl. `cycle entry`, `custom:GFP`, ...) | all NaN    |
-| canonical| 6992 | 6                                          | populated  |
-
-Of the 11 ROIs present in both, zero are identical, and the root copy holds only 22
-CSVs against the canonical 50. Repoint these to the canonical directory before
-relying on them; `setup_imc_spatial_pcmm.py` already does (it takes the *filename*
-from each ROI config but resolves it against the canonical path).
 
 ## archive/
 

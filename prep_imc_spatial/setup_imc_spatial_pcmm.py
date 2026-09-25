@@ -29,8 +29,8 @@ IC folders sit one step downstream of batch_assemble_ics.py -- if that is re-run
 re-run this too so the PCMM inputs match the assembler's current output.
 
 Source-of-truth caveat: the cell-position <folder> in the ROI configs reads
-"config/ics/JHH_IMC", which is the make-load copy -- untracked and already
-stale. This script takes the *filename* from the config (authoritative for
+"config/ics/JHH_IMC", the make-load copy, which exists only after `make load`.
+This script takes the *filename* from the config (authoritative for
 which file a ROI uses) but resolves it against the git-tracked
 user_projects/antigen_presentation/config/ics/JHH_IMC.
 
@@ -132,7 +132,7 @@ def read_spec(roi, path):
 
     # IC references: take the filename from the config (authoritative), but
     # resolve cell positions against the tracked directory rather than the
-    # stale make-load copy the <folder> element points at.
+    # make-load copy the <folder> element points at.
     cell_file = text_at(root, "initial_conditions/cell_positions/filename")
     spec["_cell_src"] = TRACKED_CELL_IC_DIR / cell_file
 

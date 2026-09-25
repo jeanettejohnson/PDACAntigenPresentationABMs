@@ -93,8 +93,9 @@ Each driver job activates the conda environment and runs the matching Julia scri
 Driver-job logs land in `slurm/logs/` as `<job-name>_<job-id>.out`/`.err`. Individual simulations log to `data/outputs/simulations/<id>/`.
 
 All four simulations run straight from a fresh clone -- every PCMM input they
-need (configs, rulesets, custom code, and the 48 per-ROI IC folders for
-imc_spatial) is tracked in `data/inputs/`. No generation step is required.
+need (configs, rulesets, custom code, the 48 per-ROI IC folders for
+imc_spatial, and the 48 random layouts and uniform ECM fields for imc_wellmixed)
+is tracked in `data/inputs/`. No generation step is required.
 
 To run a subset -- a test run before the full set, say -- edit the `SUBSET`
 constant at the top of the simulation's `run_*.jl` script: sample IDs or ROI

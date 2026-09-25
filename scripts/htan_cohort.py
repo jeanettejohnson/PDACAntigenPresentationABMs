@@ -24,8 +24,9 @@ CSV = BASE / "assignmentsummary_HTAN_singlecell.csv"
 #:
 #: Note the path. `assignmentsummary_JHH_IMC_test.csv` sits at the repository root
 #: in every clone and holds three samples: it is a fixture, not the cohort. The
-#: real one has 48 rows and lives under prep_imc_spatial/, which is what
-#: slurm/run_imc_wellmixed.jl reads when it seeds the runs.
+#: real one has 48 rows and lives under prep_imc_spatial/. Its counts equal the
+#: biological cells of each ROI's IMC IC, which is how resolve_samples.py matches
+#: both IMC simulation sets to their ROIs.
 IMC_CSV = BASE / "prep_imc_spatial" / "assignmentsummary_JHH_IMC.csv"
 
 #: PhysiCell cell type -> the CSV columns summed to produce it.

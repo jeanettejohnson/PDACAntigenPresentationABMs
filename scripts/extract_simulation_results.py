@@ -6,14 +6,19 @@ Four files per simulation:
     derived/<sim_id>-initial.h5ad   t=0 snapshot, with contact graphs in obsp
     derived/<sim_id>-final.h5ad     terminal snapshot, with contact graphs
     derived/<sim_id>-series.h5ad    every timepoint, every cell column, no graphs
-    derived/<sim_id>-microenv.h5    the seven substrate fields on their voxel grid
+    derived/<sim_id>-microenv.h5    the substrate fields on their voxel grid
 
 where <sim_id> is <sim_type>-<nnn>-<sample_id>, e.g.
-htan_wellmixed-001-HT056P1_S1PA or imc_spatial-003-JHH317ROI3.
+htan_wellmixed-001-HT056P1_S1PA or imc_spatial-003-JHH317ROI3, with -cafmhc2
+appended for a run that had the CAF-contact MHC-II rule on.
 
-Together about 207 MB per simulation, against 1.5 GB of raw output, and nothing
-a figure or a spatial analysis is likely to want is dropped. The point is to
-read the raw output once: everything downstream reads derived/.
+A small fraction of the raw output, and nothing a figure or a spatial analysis
+is likely to want is dropped. The point is to read the raw output once:
+everything downstream reads derived/.
+
+The four files are built in a scratch folder and moved into derived/ only once
+every check has passed, so derived/ never holds a set that failed one -- a
+rerun would otherwise take it for finished and skip it.
 
 Run in the `physicell-analysis-260901` environment, never in physicell-sim-260606
 -- see conda_env_configs/physicell_analysis_260901.yaml for why they are kept
@@ -23,10 +28,12 @@ simulation environment is left alone so its pinned figure stack never re-solves.
 
 import argparse
 import re
+import shutil
 import sqlite3
 import subprocess
 import sys
 import time
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import numpy as np
@@ -38,11 +45,13 @@ OUTPUTS = BASE / "data" / "outputs" / "simulations"
 DERIVED = BASE / "derived"
 PCMM_DB = BASE / "data" / "pcmm.db"
 
-#: X chunk shape. Measured on a 600k-row slab: 16384x64 reads one column in
-#: 0.13s against 1.26s for the full-width 8192x457, and the file is 13% smaller.
-#: Full reads cost 30% more, which is the right trade -- a 4.7 GB X should not be
-#: read whole routinely, and column access is what the figures actually do.
-X_CHUNKS = (16384, 64)
+#: X chunk shape. Measured on the 2-hour-save series (221k and 702k rows): one
+#: column reads in 0.020s / 0.053s against 0.063s / 0.153s for the 16384x64 it
+#: replaces, and five neighbouring columns 3x faster too, with no read pattern
+#: slower -- a timestep slab and the full matrix cost the same. 1 MiB per chunk,
+#: so it fits h5py's default chunk cache; narrower chunks read columns faster
+#: still but slow down row reads. Capped to the series by `x_chunks`.
+X_CHUNKS = (16384, 16)
 
 #: pcdl scales every numeric column by default. For an archive that is wrong:
 #: a stored "cell volume" would be a unitless 0-1 quantity with nothing saying so.
@@ -54,6 +63,10 @@ SCALE = None
 #: values=2 would also evaluate constancy per file, giving different columns per
 #: simulation and breaking concat.
 VALUES = 1
+
+#: The first four rows of a microenvironment .mat, before one row per substrate.
+VOXEL_ROWS = (("x", "micron"), ("y", "micron"), ("z", "micron"),
+              ("volume", "cubic micron"))
 
 
 #: Identity, resolved once per run rather than per simulation. scripts/
@@ -67,8 +80,6 @@ def identity():
     """(sim_type, {simulation_id: sample_id}, {variation_id: geometry})."""
     global _IDENTITY
     if _IDENTITY is None:
-        import sys
-
         sys.path.insert(0, str(BASE))
         from scripts.resolve_samples import (geometries, load_cohorts, resolve,
                                              sim_type)
@@ -94,7 +105,8 @@ def describe(simulation_id):
     "_", so the stem splits unambiguously -- no field value contains a dash.
     """
     kind, mapping, geo = identity()
-    from scripts.resolve_samples import caf_mhc2_rate  # identity() put BASE on sys.path
+    # identity() put BASE on sys.path
+    from scripts.resolve_samples import caf_mhc2_rate, derived_stem
 
     sample = mapping.get(simulation_id)
     geometry = None
@@ -107,14 +119,15 @@ def describe(simulation_id):
         if row:
             geometry = f"c{row[1]}_{geo.get(int(row[0]), 'unknown')}"
     match = PATIENT_RE.match(str(sample)) if sample else None
+    rate = caf_mhc2_rate(OUTPUTS / str(simulation_id) / "output")
     return {
         "sim_type": kind,
         "sim_db_id": int(simulation_id),
         "sample_id": sample,
         "patient_id": match.group(1) if match else sample,
         "geometry": geometry,
-        "caf_mhc2_rate": caf_mhc2_rate(OUTPUTS / str(simulation_id) / "output"),
-        "sim_id": f"{kind}-{simulation_id:03d}-{sample}",
+        "caf_mhc2_rate": rate,
+        "sim_id": derived_stem(kind, simulation_id, sample, rate),
     }
 
 
@@ -129,53 +142,127 @@ def completed_simulations():
     return [r[0] for r in rows]
 
 
-def write_microenvironment(output_dir, path, times):
+def x_chunks(shape):
+    """The X chunk shape for a series of `shape`: X_CHUNKS, capped at the data.
+
+    h5repack does not clip a chunk that is larger than the dataset. It drops the
+    chunked layout, and the gzip filter with it, and exits 0 -- which is how an
+    8,888-row series came out uncompressed.
+    """
+    return tuple(max(1, min(c, n)) for c, n in zip(X_CHUNKS, shape))
+
+
+def x_layout_problems(x):
+    """What is wrong with a series X dataset (h5py), or [] if nothing."""
+    problems = []
+    if x.dtype != np.float32:
+        problems.append(f"X is {x.dtype}, not float32")
+    if x.compression != "gzip":
+        problems.append(f"X compression is {x.compression or 'none'}, not gzip")
+    if x.chunks != x_chunks(x.shape):
+        problems.append(f"X chunks are {x.chunks}, not {x_chunks(x.shape)}")
+    return problems
+
+
+def substrates(xml):
+    """[(name, units)] for each substrate, in the row order of the .mat fields."""
+    variables = ET.parse(xml).getroot().find("microenvironment/domain/variables")
+    rows = sorted((int(v.get("ID")), v.get("name"), v.get("units", ""))
+                  for v in variables.findall("variable"))
+    return [(name, units) for _, name, units in rows]
+
+
+def cell_labels(xml):
+    """{label: row} of the cells .mat, read from the output XML."""
+    labels = ET.parse(xml).getroot().find(
+        "cellular_information//simplified_data/labels")
+    return {label.text: int(label.get("index")) for label in labels}
+
+
+def write_microenvironment(steps, path, times):
     """Stack the substrate fields into one (time, row, voxel) array.
 
     Read straight from the .mat rather than through pcdl: the fields are a plain
     grid with no cell axis, so a DataFrame round-trip would only make them larger
-    and less obviously what they are. Rows are voxel x, y, z, volume, then one per
-    substrate.
+    and less obviously what they are. Rows are voxel x, y, z, volume, then one
+    per substrate, named in `row_names` from the run's own XML.
+
+    `steps` are the series' output XMLs, so field i is at the series' time i by
+    construction rather than by two globs happening to sort alike.
     """
     import h5py
 
-    files = sorted(output_dir.glob("output*_microenvironment0.mat"))
-    if not files:
+    files = [xml.with_name(xml.stem + "_microenvironment0.mat") for xml in steps]
+    missing = [f.name for f in files if not f.exists()]
+    if len(missing) == len(files):
         return None
-    stack = np.stack([
-        scipy.io.loadmat(f)[
-            [k for k in scipy.io.loadmat(f) if not k.startswith("__")][0]
-        ].astype("float32")
-        for f in files
-    ])
+    if missing:
+        raise AssertionError(
+            f"{len(missing)} of {len(files)} timesteps have no microenvironment "
+            f"file, e.g. {missing[:3]}")
+
+    fields = []
+    for f in files:
+        mat = scipy.io.loadmat(f)
+        fields.append(mat[[k for k in mat if not k.startswith("__")][0]].astype("float32"))
+    stack = np.stack(fields)
+
+    rows = list(VOXEL_ROWS) + substrates(steps[0])
+    if len(rows) != stack.shape[1]:
+        raise AssertionError(
+            f"the .mat fields have {stack.shape[1]} rows but the XML names "
+            f"{len(rows)}: {[name for name, _ in rows]}")
     with h5py.File(path, "w") as h:
         d = h.create_dataset("field", data=stack, compression="gzip", chunks=True)
-        d.attrs["layout"] = "(timepoint, row, voxel); rows 0-2 voxel xyz, 3 volume, 4+ substrates"
-        if times is not None:
-            h.create_dataset("time", data=np.asarray(times, dtype="float64"))
+        d.attrs["layout"] = "(timepoint, row, voxel); rows named in row_names"
+        h.create_dataset("row_names", data=[name for name, _ in rows],
+                         dtype=h5py.string_dtype())
+        h.create_dataset("row_units", data=[units for _, units in rows],
+                         dtype=h5py.string_dtype())
+        h.create_dataset("time", data=np.asarray(times, dtype="float64"))
     return stack.shape
 
 
-def verify_unscaled(h5ad_path, mat_path, label_index=6, var_name="total_volume"):
+def verify_unscaled(h5ad_path, mat_path, xml_path, var_name="total_volume"):
     """Check a stored column against the raw .mat it came from.
 
     This is the assertion the whole archive rests on. pcdl scales by default, and a
     silently normalised archive looks perfectly fine until someone reads an axis
     label -- at which point the only fix is re-reading 110 GB. Cheap to check, so
     it is checked every run rather than trusted.
+
+    Cells are matched by ID, and only the ones at the .mat's own time are
+    compared, so the same check covers a snapshot and one timestep of the series.
+    Row positions come from the XML's labels rather than being assumed.
     """
-    import anndata as ad
+    import h5py
 
-    adata = ad.read_h5ad(h5ad_path)
-    if var_name not in adata.var_names:
-        raise AssertionError(f"{var_name!r} not stored in {h5ad_path.name}")
+    labels = cell_labels(xml_path)
+    when = int(float(ET.parse(xml_path).getroot().find("metadata/current_time").text))
 
-    stored = np.asarray(adata[:, var_name].X).ravel()
-    raw = scipy.io.loadmat(mat_path)["cells"][label_index, :]
+    with h5py.File(h5ad_path, "r") as h:
+        names = [n.decode() if isinstance(n, bytes) else str(n)
+                 for n in h["var"][h["var"].attrs.get("_index", "_index")][:]]
+        if var_name not in names:
+            raise AssertionError(f"{var_name!r} not stored in {h5ad_path.name}")
+        column = h["X"][:, names.index(var_name)]
+        obs = [n.decode() if isinstance(n, bytes) else str(n)
+               for n in h["obs"][h["obs"].attrs.get("_index", "_index")][:]]
 
-    order = np.argsort(np.asarray(adata.obs_names, dtype=float))
-    raw_order = np.argsort(scipy.io.loadmat(mat_path)["cells"][0, :])
-    if not np.allclose(stored[order], raw[raw_order], rtol=1e-5, atol=1e-5):
+    # obs_names are <cell id>_<minutes> (name_observations)
+    ids, times = zip(*(n.rsplit("_", 1) for n in obs))
+    at = np.asarray(times) == str(when)
+    stored = pd.Series(column[at], index=np.asarray(ids, dtype=int)[at]).sort_index()
+
+    cells = scipy.io.loadmat(mat_path)["cells"]
+    raw = pd.Series(cells[labels[var_name], :],
+                    index=cells[labels["ID"], :].astype(int)).sort_index()
+
+    if not stored.index.equals(raw.index):
+        raise AssertionError(
+            f"{h5ad_path.name} at t={when} holds {len(stored):,} cells, the raw "
+            f".mat {len(raw):,}, or not the same ones")
+    if not np.allclose(stored.values, raw.values, rtol=1e-5, atol=1e-5):
         raise AssertionError(
             f"{var_name} in {h5ad_path.name} does not match the raw .mat -- "
             f"stored range [{stored.min():.4g}, {stored.max():.4g}], "
@@ -185,15 +272,14 @@ def verify_unscaled(h5ad_path, mat_path, label_index=6, var_name="total_volume")
     return stored.min(), stored.max()
 
 
-
 def name_observations(adata, time):
     """Make obs_names unique and meaningful: <cell id>_<simulation minutes>.
 
     Cell ids repeat at every timestep, so a concatenated series would otherwise
-    carry 337 rows called "1234". Suffixing with the timepoint makes each row
-    addressable, and -- because the snapshots use the same rule -- the same cell
-    at the same moment has the same name in the series and in the snapshot, so
-    the two join directly.
+    carry one row called "1234" per timestep. Suffixing with the timepoint makes
+    each row addressable, and -- because the snapshots use the same rule -- the
+    same cell at the same moment has the same name in the series and in the
+    snapshot, so the two join directly.
 
     Time comes from the timestep rather than a file index: final.xml is not
     always the last numbered output. Simulation 10's is 4,425 cells against
@@ -250,8 +336,6 @@ def verify_placement(simulation_id, output_dir, report):
     would otherwise record as a real starting condition.
     """
     import collections
-    import xml.etree.ElementTree as ET
-    import sys
 
     sys.path.insert(0, str(BASE))
     from scripts.resolve_samples import _variation_counts
@@ -270,7 +354,7 @@ def verify_placement(simulation_id, output_dir, report):
     if not (mat.exists() and xml.exists()):
         report["placement"] = "no t=0 output to compare"
         return
-    codes = scipy.io.loadmat(mat)["cells"][7, :].astype(int)
+    codes = scipy.io.loadmat(mat)["cells"][cell_labels(xml)["cell_type"], :].astype(int)
     names = {int(c.get("ID")): c.text
              for c in ET.parse(xml).getroot().find(".//cell_types")}
     actual = collections.Counter(names.get(c, "?") for c in codes)
@@ -285,7 +369,7 @@ def verify_placement(simulation_id, output_dir, report):
     report["placement"] = f"{sum(requested.values()):,} cells as requested"
 
 
-def verify_complete(paths, output_dir, report):
+def verify_complete(paths, steps, report):
     """Refuse to call a simulation done unless its files say so.
 
     This exists because the failure mode here is not a crash. Three separate
@@ -295,10 +379,11 @@ def verify_complete(paths, output_dir, report):
     purpose is never re-reading the raw output, a silent partial success is worse
     than an error, because nothing downstream will question it.
 
-    Checks that every file exists and is non-trivial, and that the series holds
-    exactly as many rows as the timesteps have cells between them.
+    Checks that every file exists and is non-trivial, that the series holds
+    exactly as many rows as the timesteps have cells between them, and that X is
+    float32 and gzip-compressed in the chunks it was meant to have.
     """
-    import anndata as ad
+    import h5py
 
     for name, path in paths.items():
         if not path.exists():
@@ -310,39 +395,121 @@ def verify_complete(paths, output_dir, report):
     # over 917 MB per simulation purely to count columns -- about a quarter of
     # the runtime, spent re-reading data already converted.
     expected = 0
-    for xml in sorted(output_dir.glob("output*.xml")):
+    for xml in steps:
         mat = xml.with_name(xml.stem + "_cells.mat")
         if mat.exists():
             expected += scipy.io.whosmat(str(mat))[0][1][1]
 
-    # Size, because the worst bug so far was invisible to every other check.
-    # concat_on_disk writes X uncompressed and in float64; the files existed, the
-    # structure was right, the row count would have matched -- and the archive was
-    # 10 GB per simulation against a 110 GB raw total it was meant to replace.
-    # Only the size said so. A compressed float32 series runs well under 1 GB.
-    series_mb = paths["series"].stat().st_size / 2**20
-    if series_mb > 1024:
-        raise AssertionError(
-            f"series is {series_mb:.0f} MB, which means it was not compressed or "
-            "not cast to float32 -- at this size the archive is larger than the "
-            "raw output it replaces"
-        )
-
-    series = ad.read_h5ad(paths["series"], backed="r")
-    rows = series.n_obs
-    series.file.close()
+    # The layout, because the worst bugs so far were invisible to every other
+    # check. concat_on_disk writes X uncompressed and in float64, and h5repack
+    # skips a chunk larger than the data without a word; either way the files
+    # existed, the structure was right and the row count matched. A size limit
+    # used to stand in for this and could not see a small uncompressed series.
+    with h5py.File(paths["series"], "r") as h:
+        problems = x_layout_problems(h["X"])
+        rows = h["X"].shape[0]
+        uns = {k: h["uns"][k][()] for k in ("sample_id", "pcdl_version")
+               if "uns" in h and k in h["uns"]}
+    if problems:
+        raise AssertionError(f"{paths['series'].name}: {'; '.join(problems)}")
     if rows != expected:
         raise AssertionError(
             f"series has {rows:,} rows but the timesteps hold {expected:,} cells "
             "between them -- the concatenation dropped or duplicated data"
         )
     for key in ("sample_id", "pcdl_version"):
-        if not series.uns.get(key):
+        if not uns.get(key):
             raise AssertionError(
                 f"{paths['series'].name} carries no {key} -- uns was not stamped"
             )
     report["rows_verified"] = rows
-    report["series_MB"] = round(series_mb, 1)
+    report["series_MB"] = round(paths["series"].stat().st_size / 2**20, 1)
+
+
+def write_series(steps, meta, out, scratch):
+    """Every timestep as one AnnData at `out`. Returns the timestep times.
+
+    NOT mcdsts.get_anndata(collapse=True). That path loads every timestep into
+    memory and then builds the concatenated frame: at the 30-minute saves this
+    was written against, 2.55M rows x 459 float64 columns was 8.7 GB for the
+    result alone, before pcdl's per-timestep objects, and it died partway
+    through -- silently, having already written the snapshots, which is how it
+    first showed up as "exit 0 but no series file".
+
+    Streaming instead keeps peak memory at one timestep.
+    """
+    import h5py
+    import pcdl
+
+    times, parts = [], []
+    for i, xml in enumerate(steps):
+        mcds = pcdl.TimeStep(str(xml), microenv=False, graph=False,
+                             physiboss=False, verbose=False)
+        step = mcds.get_anndata(values=VALUES, scale=SCALE)
+        name_observations(step, mcds.get_time())
+        # Identity goes on every part, not onto the finished file. uns is
+        # per-file and cannot survive a concat into a combined object, so a
+        # row has to carry its own -- and adding it here means concat_on_disk
+        # propagates it rather than needing h5py surgery afterwards.
+        for field, value in meta.items():
+            step.obs[field] = "" if value is None else str(value)
+        # pcdl hands back float64. These are simulation state variables, not
+        # quantities with 15 significant figures; float32 halves the file the
+        # concat has to write and costs nothing anyone will measure.
+        step.X = step.X.astype("float32")
+        times.append(float(mcds.get_time()))
+        part = scratch / f"part_{i:06d}.h5ad"
+        step.write_h5ad(part)          # uncompressed: read once, then deleted
+        parts.append(part)
+        del step, mcds
+
+    # anndata's own on-disk concatenation. Hand-writing this was tried and
+    # abandoned: with pandas 3.0 in this environment, anndata encodes string
+    # columns as nullable-string-array groups (mask + values) and categoricals
+    # as codes + categories groups, so the on-disk layout is both intricate and
+    # dependent on the pandas version doing the writing. That is a format to
+    # let its own library own. Needs dask, which is what its dense path uses.
+    from anndata.experimental import concat_on_disk
+
+    raw_out = scratch / "series.raw.h5ad"
+    concat_on_disk([str(x) for x in parts], str(raw_out), axis=0, join="outer")
+
+    # Unlink the parts now. They and the uncompressed concat are each about
+    # rows x 457 x 4 bytes, so holding both through the repack doubles peak
+    # scratch per simulation, on a shared mount.
+    for part in parts:
+        part.unlink()
+
+    # concat_on_disk writes X uncompressed and unchunked -- it takes no
+    # compression argument. h5repack applies gzip in a streaming pass, so peak
+    # memory stays flat.
+    # Scoped to /X on purpose. A bare "-f GZIP=4" leaves obs, obsm and var
+    # uncompressed anyway -- which is what we want -- but by accident rather
+    # than instruction, and that is not a thing to depend on across h5repack
+    # versions.
+    with h5py.File(raw_out, "r") as h:
+        chunks = x_chunks(h["X"].shape)
+    result = subprocess.run(
+        ["h5repack",
+         "-f", "/X:GZIP=4",
+         "-l", f"/X:CHUNK={chunks[0]}x{chunks[1]}",
+         str(raw_out), str(out)],
+        capture_output=True, text=True,
+    )
+    if result.returncode:
+        raise RuntimeError(f"h5repack exited {result.returncode}: "
+                           f"{(result.stderr or result.stdout).strip()}")
+    raw_out.unlink()
+    with h5py.File(out, "r") as h:
+        problems = x_layout_problems(h["X"])
+    if problems:
+        raise AssertionError(f"h5repack left {out.name} wrong: {'; '.join(problems)}")
+
+    # concat_on_disk does not carry uns through, so identity is stamped in
+    # afterwards. Without it a derived file cannot say which sample it is,
+    # which is the whole reason it is stamped rather than joined later.
+    stamp_identity(out, meta)
+    return times
 
 
 def extract(simulation_id, force=False, verify_counts=False):
@@ -368,139 +535,76 @@ def extract(simulation_id, force=False, verify_counts=False):
     if not force and all(p.exists() for p in paths.values()):
         return {"simulation": simulation_id, "skipped": True}
 
-    sample_id = meta["sample_id"]
-    report = {"simulation": simulation_id, "sample": sample_id, **meta}
-    # -- snapshots: TimeStep is not the collapsed path, so obsp keeps the graphs --
-    # graph=False at t=0: no neighbours are recorded there, so obsp comes back
-    # empty regardless and loading three graph files is a guaranteed discard.
-    for key, want_graph in (("initial", False), ("final", True)):
-        t0 = time.time()
-        mcds = pcdl.TimeStep(str(output_dir / f"{key}.xml"), microenv=False,
-                             graph=want_graph, physiboss=False, verbose=False)
-        adata = mcds.get_anndata(values=VALUES, scale=SCALE)
-        name_observations(adata, mcds.get_time())
-        # float32 here too, matching the series. Not for the 50 MB it saves across
-        # the archive, but because a snapshot and the series it belongs to should
-        # concatenate without a dtype promotion.
-        adata.X = adata.X.astype("float32")
-        adata.uns.update(provenance())
-        # `field`, not `key`: the enclosing loop binds `key` to the snapshot name
-        # and uses it for paths[key] afterwards.
-        for field, value in meta.items():
-            adata.uns[field] = "" if value is None else str(value)
-            adata.obs[field] = "" if value is None else str(value)
-        adata.write_h5ad(paths[key], compression="gzip")
-        report[f"{key}_s"] = round(time.time() - t0, 1)
-        report[f"{key}_cells"] = adata.n_obs
-        report[f"{key}_graphs"] = sorted(adata.obsp.keys())
-
-    # -- series: one timestep at a time, concatenated on disk --
-    #
-    # NOT mcdsts.get_anndata(collapse=True). That path loads all 337 timesteps
-    # into memory and then builds the concatenated frame: 2.55M rows x 459 float64
-    # columns is 8.7 GB for the result alone, before pcdl's per-timestep objects.
-    # This machine has 15 GB total and ~10 GB free, so it dies partway through --
-    # silently, having already written the snapshots, which is how it first showed
-    # up as "exit 0 but no series file".
-    #
-    # Streaming instead keeps peak memory at one timestep, about 28 MB.
-    t0 = time.time()
+    report = {"simulation": simulation_id, "sample": meta["sample_id"], **meta}
     steps = sorted(output_dir.glob("output*.xml"))
-    times, parts = [], []
-    tmpdir = DERIVED / f".tmp_sim_{simulation_id}"
-    tmpdir.mkdir(parents=True, exist_ok=True)
+
+    # Everything is written here and moved into derived/ only after the checks
+    # pass. A leftover folder is from a task that was killed outright, so it is
+    # cleared rather than trusted.
+    scratch = DERIVED / f".tmp_sim_{simulation_id}"
+    shutil.rmtree(scratch, ignore_errors=True)
+    scratch.mkdir(parents=True)
+    work = {k: scratch / p.name for k, p in paths.items()}
     try:
-        for i, xml in enumerate(steps):
-            mcds = pcdl.TimeStep(str(xml), microenv=False, graph=False,
-                                 physiboss=False, verbose=False)
-            step = mcds.get_anndata(values=VALUES, scale=SCALE)
-            name_observations(step, mcds.get_time())
-            # Identity goes on every part, not onto the finished file. uns is
-            # per-file and cannot survive a concat into a combined object, so a
-            # row has to carry its own -- and adding it here means concat_on_disk
-            # propagates it rather than needing h5py surgery afterwards.
+        # -- snapshots: TimeStep is not the collapsed path, so obsp keeps the graphs --
+        # graph=False at t=0: no neighbours are recorded there, so obsp comes back
+        # empty regardless and loading three graph files is a guaranteed discard.
+        for key, want_graph in (("initial", False), ("final", True)):
+            t0 = time.time()
+            mcds = pcdl.TimeStep(str(output_dir / f"{key}.xml"), microenv=False,
+                                 graph=want_graph, physiboss=False, verbose=False)
+            adata = mcds.get_anndata(values=VALUES, scale=SCALE)
+            name_observations(adata, mcds.get_time())
+            # float32 here too, matching the series. Not for the 50 MB it saves
+            # across the archive, but because a snapshot and the series it belongs
+            # to should concatenate without a dtype promotion.
+            adata.X = adata.X.astype("float32")
+            adata.uns.update(provenance())
+            # `field`, not `key`: the enclosing loop binds `key` to the snapshot
+            # name and uses it for work[key] afterwards.
             for field, value in meta.items():
-                step.obs[field] = "" if value is None else str(value)
-            # pcdl hands back float64. These are simulation state variables, not
-            # quantities with 15 significant figures; float32 halves the file the
-            # concat has to write and costs nothing anyone will measure.
-            step.X = step.X.astype("float32")
-            times.append(float(mcds.get_time()))
-            part = tmpdir / f"{i:06d}.h5ad"
-            step.write_h5ad(part)          # uncompressed: read once, then deleted
-            parts.append(part)
-            del step, mcds
+                adata.uns[field] = "" if value is None else str(value)
+                adata.obs[field] = "" if value is None else str(value)
+            adata.write_h5ad(work[key], compression="gzip")
+            report[f"{key}_s"] = round(time.time() - t0, 1)
+            report[f"{key}_cells"] = adata.n_obs
+            report[f"{key}_graphs"] = sorted(adata.obsp.keys())
 
-        # anndata's own on-disk concatenation. Hand-writing this was tried and
-        # abandoned: with pandas 3.0 in this environment, anndata encodes string
-        # columns as nullable-string-array groups (mask + values) and categoricals
-        # as codes + categories groups, so the on-disk layout is both intricate and
-        # dependent on the pandas version doing the writing. That is a format to
-        # let its own library own. Needs dask, which is what its dense path uses.
-        from anndata.experimental import concat_on_disk
-
-        raw_out = paths["series"].with_suffix(".raw.h5ad")
-        concat_on_disk([str(x) for x in parts], str(raw_out),
-                       axis=0, join="outer")
-
-        # Unlink the parts now rather than in the finally block. They and the
-        # uncompressed concat are each about 5 GB, so holding both through the
-        # repack puts peak scratch at 10 GB per simulation -- 120 GB across
-        # twelve concurrent tasks, on a shared mount.
-        for part in parts:
-            part.unlink(missing_ok=True)
-        parts = []
-
-        # concat_on_disk writes X uncompressed and unchunked -- it takes no
-        # compression argument -- which for this data is 10 GB per simulation,
-        # worse than the raw output it replaces. h5repack applies gzip in a
-        # streaming pass, so peak memory stays flat.
-        # Scoped to /X on purpose. A bare "-f GZIP=4" leaves obs, obsm and var
-        # uncompressed anyway -- which is what we want -- but by accident rather
-        # than instruction, and that is not a thing to depend on across h5repack
-        # versions.
-        subprocess.run(
-            ["h5repack",
-             "-f", "/X:GZIP=4",
-             "-l", f"/X:CHUNK={X_CHUNKS[0]}x{X_CHUNKS[1]}",
-             str(raw_out), str(paths["series"])],
-            check=True, capture_output=True,
-        )
-        raw_out.unlink()
-        # concat_on_disk does not carry uns through, so identity is stamped in
-        # afterwards. Without it a derived file cannot say which sample it is,
-        # which is the whole reason it is stamped rather than joined later.
-        stamp_identity(paths["series"], meta)
+        # -- series: one timestep at a time, concatenated on disk --
+        t0 = time.time()
+        times = write_series(steps, meta, work["series"], scratch)
         report["series_s"] = round(time.time() - t0, 1)
-        report["series_steps"] = len(parts)
+        report["series_steps"] = len(steps)
+
+        import anndata as ad
+
+        series = ad.read_h5ad(work["series"], backed="r")
+        report["series_rows"], report["series_cols"] = series.n_obs, series.n_vars
+        report["has_spatial"] = "spatial" in series.obsm
+        series.file.close()
+
+        # -- microenvironment: its own file, no cell axis to annotate --
+        t0 = time.time()
+        report["microenv_shape"] = write_microenvironment(steps, work["microenv"], times)
+        report["microenv_s"] = round(time.time() - t0, 1)
+
+        # -- the assertion the archive rests on, on a snapshot and on the series --
+        lo, hi = verify_unscaled(work["initial"], output_dir / "initial_cells.mat",
+                                 output_dir / "initial.xml")
+        report["total_volume_range"] = (round(float(lo), 1), round(float(hi), 1))
+        last = steps[-1]
+        verify_unscaled(work["series"], last.with_name(last.stem + "_cells.mat"), last)
+
+        verify_complete(work, steps, report)
+        if verify_counts:
+            verify_placement(simulation_id, output_dir, report)
+
+        for key, path in paths.items():
+            work[key].replace(path)
     finally:
-        for part in parts:
-            part.unlink(missing_ok=True)
-        if tmpdir.exists() and not any(tmpdir.iterdir()):
-            tmpdir.rmdir()
-
-    import anndata as ad
-
-    series = ad.read_h5ad(paths["series"], backed="r")
-    report["series_rows"], report["series_cols"] = series.n_obs, series.n_vars
-    report["has_spatial"] = "spatial" in series.obsm
-    series.file.close()
-
-    # -- microenvironment: its own file, no cell axis to annotate --
-    t0 = time.time()
-    report["microenv_shape"] = write_microenvironment(
-        output_dir, paths["microenv"], times
-    )
-    report["microenv_s"] = round(time.time() - t0, 1)
-
-    # -- the assertion the archive rests on --
-    lo, hi = verify_unscaled(paths["initial"], output_dir / "initial_cells.mat")
-    report["total_volume_range"] = (round(float(lo), 1), round(float(hi), 1))
+        shutil.rmtree(scratch, ignore_errors=True)
 
     report["MB"] = round(sum(p.stat().st_size for p in paths.values()) / 2**20, 1)
-    verify_complete(paths, output_dir, report)
-    if verify_counts:
-        verify_placement(simulation_id, output_dir, report)
     return report
 
 
@@ -528,9 +632,10 @@ def main():
             detail += f" / {report['geometry']}"
         print(f"  {report['sim_type']} sim {sid} ({detail}): {report['MB']} MB "
               f"in {time.time() - started:.0f}s")
-        for k in ("sim_id", "placement", "initial_s", "final_s", "series_s", "microenv_s",
-                  "series_rows", "series_cols", "has_spatial",
-                  "initial_graphs", "final_graphs", "microenv_shape", "total_volume_range"):
+        for k in ("sim_id", "caf_mhc2_rate", "placement", "initial_s", "final_s",
+                  "series_s", "microenv_s", "series_steps", "series_rows",
+                  "series_cols", "has_spatial", "initial_graphs", "final_graphs",
+                  "microenv_shape", "total_volume_range"):
             print(f"      {k:20s} {report.get(k)}")
     return 0
 

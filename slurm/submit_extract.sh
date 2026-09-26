@@ -26,7 +26,7 @@
 #
 # Two stages:
 #
-#   1. an array, one task per simulation, capped at twelve concurrent
+#   1. an array, one task per simulation, capped at twenty concurrent
 #   2. a single finalize task, --dependency=afterok on the array
 #
 # afterok means the finalize does not run if any conversion failed. A partial
@@ -36,15 +36,16 @@ set -eo pipefail
 
 module load slurm
 
-# How many array tasks run at once. The work is ~85% NFS read wait, so past a
-# dozen or so concurrent readers tasks contend on the shared mount rather than
-# going faster, and each needs about 5 GB of scratch for its intermediate parts.
+# How many array tasks run at once. The work is mostly NFS read wait, and each
+# task needs scratch for its intermediate parts, about 2 x rows x columns x
+# 4 bytes: under 1 GB for a median HTAN run and about 5 GB for the largest IMC
+# spatial one at the 2-hour saves. At the 30-minute saves it was ~5 GB for
+# every run, which is why this used to be four.
 #
-# Four, not twelve, because the four simulation sets are converted from four
-# clones at the same time: the ceiling that matters is the total across all of
-# them, and 4 x 4 sits inside it where 4 x 12 would not. Raising this is felt by
+# The cap is per clone, so what the mount sees is this times the number of
+# clones converting at once; keep that to two or so. Raising it is felt by
 # everyone else on the mount, not just by this job.
-CONCURRENCY="${CONCURRENCY:-4}"
+CONCURRENCY="${CONCURRENCY:-20}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -91,15 +92,16 @@ N="$(wc -l < "$ID_LIST.new")"
 echo "$N completed simulations -> $ID_LIST ($CONCURRENCY at a time)"
 
 # Job names carry the simulation type so the guard below, and squeue, can tell
-# one clone's array from another's. Four clones now run this concurrently; a
-# bare "pdac-extract" made the first submission block the other three. The type
+# one clone's array from another's. Several clones run this concurrently; a
+# bare "pdac-extract" made the first submission block the others. The type
 # comes from the resolver, not from the directory name -- same rule as the
-# metadata itself.
+# metadata itself -- and gains _cafmhc2 for a clone whose runs had the
+# CAF-contact MHC-II rule on, so it does not block its baseline clone either.
 TAG="$(cd "$REPO" && python -c "
 import sys; sys.path.insert(0, '.')
-from scripts.resolve_samples import sim_type
+from scripts.resolve_samples import job_tag
 from pathlib import Path
-print(sim_type(Path('.')))
+print(job_tag(Path('.'), [int(s) for s in open('$ID_LIST.new').read().split()]))
 " 2>/dev/null)"
 if [ -z "$TAG" ]; then
     echo "could not determine the simulation type for $REPO" >&2
@@ -137,12 +139,14 @@ fi
 mv "$ID_LIST.new" "$ID_LIST"
 
 # --- stage 1: one task per simulation -------------------------------------
+# 5 GB of memory: the largest run so far (imc_spatial, 1.29M rows x 484
+# columns) peaked at 1.35 GB, and HTAN runs at 0.6 GB.
 ARRAY_ID="$(sbatch --parsable \
     --account="$ACCOUNT" \
     --job-name="pdac-extract-$TAG" \
     --array="1-${N}%${CONCURRENCY}" \
     --cpus-per-task=2 \
-    --mem=16G \
+    --mem=5G \
     --time=02:00:00 \
     --output="$SCRIPT_DIR/logs/extract_%A_%a.out" \
     --error="$SCRIPT_DIR/logs/extract_%A_%a.err" \

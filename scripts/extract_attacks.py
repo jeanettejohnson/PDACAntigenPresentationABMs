@@ -95,7 +95,8 @@ def extract(path):
 
         obs_names = _decode(handle["obs"]["_index"][:])
         cell_type = _obs_column(handle, "cell_type")
-        times = _obs_column(handle, "time")
+        # minutes as numbers: _obs_column decodes to str, which would store "120.0"
+        times = np.asarray(_obs_column(handle, "time"), dtype=float)
         identity = {k: _obs_column(handle, k)[0] if k in handle["obs"] else ""
                     for k in IDENTITY}
 

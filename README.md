@@ -115,7 +115,9 @@ from the 24-96 h rise of HLA-DR in PDO-CAF co-culture, Guinn et al., Cancer Res
 2024). The rate is applied as a PCMM rules variation, so enabled runs are
 separate from the baseline ones and never replace them. Every run records the
 rate it used in `output/cell_rules_parsed.csv`, and the extracted data carry it
-as `caf_mhc2_rate`.
+as `caf_mhc2_rate`. Derived files of an enabled run end in `-cafmhc2`
+(`htan_wellmixed-001-HT056P1_S1PA-cafmhc2-series.h5ad`), so they never share a
+name with the baseline run of the same sample.
 
 PCMM writes `base_rulesets.xml` from `base_rulesets.csv` only when the XML is
 missing, so the drivers stop if the XML is older than the CSV. It is generated

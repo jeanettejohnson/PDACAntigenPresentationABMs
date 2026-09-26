@@ -92,6 +92,40 @@ def caf_mhc2_rate(output_dir):
     return rates.pop()
 
 
+#: Stem suffix of a run with the CAF-contact MHC-II rule enabled. The enabled
+#: runs come from their own clones and so reuse the baseline's simulation ids;
+#: without it the two would write identically named derived files.
+CAF_MHC2_SUFFIX = "cafmhc2"
+
+
+def output_dir(base, simulation_id):
+    """Where PhysiCell wrote simulation `simulation_id` of this clone."""
+    return Path(base) / "data" / "outputs" / "simulations" / str(simulation_id) / "output"
+
+
+def derived_stem(kind, simulation_id, sample, rate):
+    """The derived-file stem: <sim_type>-<nnn>-<sample>, plus -cafmhc2 when the
+    run had the CAF-contact MHC-II rule on (`rate`, from `caf_mhc2_rate`).
+
+    Fields join with "-" and no field contains one, so the stem still splits
+    unambiguously; the simulation id stays the second field.
+    """
+    stem = f"{kind}-{int(simulation_id):03d}-{sample}"
+    return f"{stem}-{CAF_MHC2_SUFFIX}" if rate > 0 else stem
+
+
+def job_tag(base, simulation_ids):
+    """Slurm job-name tag for this clone: its simulation type, plus _cafmhc2 when
+    any of `simulation_ids` had the CAF-contact MHC-II rule on.
+
+    Baseline and enabled clones of one type then run under different names, so
+    one's extraction does not block the other's.
+    """
+    kind = sim_type(base)
+    enabled = any(caf_mhc2_rate(output_dir(base, s)) > 0 for s in simulation_ids)
+    return f"{kind}_{CAF_MHC2_SUFFIX}" if enabled else kind
+
+
 def _has_substrate_ics(base):
     """Whether the runs have their own substrate ICs: the IMC sets do, HTAN's do not.
 

@@ -43,21 +43,33 @@ inputs = InputFolders(
     ic_cell = "antigen_presentation_htan_singlecell"
 )
 
-# Five spatial geometry configurations (c1–c5)
-# Each group (immune, CAF, tumor) is placed in an annulus defined by inner/outer radius (μm).
-# c1: immune outer ring, CAF inner ring, tumor inner ring
-# c2: immune outer ring, CAF outer ring, tumor inner ring
-# c3: immune inner ring, CAF inner ring, tumor outer ring
-# c4: immune inner ring, CAF outer ring, tumor outer ring
-# c5: immune outer ring, CAF inner ring, tumor outer ring
-# c6 was dropped (2026-09-25): it had c2's exact radii, so it only ever ran a
-# replicate of c2. c1–c5 keep spatial_config_index 1–5, as before.
+# Six spatial geometry configurations (c1–c6): every way of splitting the three
+# groups -- tumor (all tumor types and PDAC_unclassified), immune (CD4, CD8,
+# CD8_exhausted, Treg) and stroma (CAF, apCAF) -- between the inner disk
+# (0–200 μm) and the outer ring (200–400 μm). The two placements with every group
+# in one region are left out; the well-mixed runs cover that.
+#
+# Ordered by tumor, then immune, then stroma, inner before outer. A label names
+# the inner region, then the outer, each listing its groups in that order.
+#
+#     label                     tumor  immune  stroma   2026-09-25 runs
+#     c1_tumor-immune_stroma    inner  inner   outer    (new)
+#     c2_tumor-stroma_immune    inner  outer   inner    c1
+#     c3_tumor_immune-stroma    inner  outer   outer    c2
+#     c4_immune-stroma_tumor    outer  inner   inner    c3
+#     c5_immune_tumor-stroma    outer  inner   outer    c4
+#     c6_stroma_tumor-immune    outer  outer   inner    c5
+#
+# The 2026-09-25 runs numbered five of these c1–c5 in another order (last
+# column), so a c-number does not mean the same layout in the two sets.
+# spatial_config_index is the position in this list (1–6).
 const GEOMETRY_CONFIGS = [
-    (label="c1", imm_inner=200.0, imm_outer=400.0, caf_inner=  0.0, caf_outer=200.0, tum_inner=  0.0, tum_outer=200.0),
-    (label="c2", imm_inner=200.0, imm_outer=400.0, caf_inner=200.0, caf_outer=400.0, tum_inner=  0.0, tum_outer=200.0),
-    (label="c3", imm_inner=  0.0, imm_outer=200.0, caf_inner=  0.0, caf_outer=200.0, tum_inner=200.0, tum_outer=400.0),
-    (label="c4", imm_inner=  0.0, imm_outer=200.0, caf_inner=200.0, caf_outer=400.0, tum_inner=200.0, tum_outer=400.0),
-    (label="c5", imm_inner=200.0, imm_outer=400.0, caf_inner=  0.0, caf_outer=200.0, tum_inner=200.0, tum_outer=400.0),
+    (label="c1_tumor-immune_stroma", tum_inner=  0.0, tum_outer=200.0, imm_inner=  0.0, imm_outer=200.0, caf_inner=200.0, caf_outer=400.0),
+    (label="c2_tumor-stroma_immune", tum_inner=  0.0, tum_outer=200.0, imm_inner=200.0, imm_outer=400.0, caf_inner=  0.0, caf_outer=200.0),
+    (label="c3_tumor_immune-stroma", tum_inner=  0.0, tum_outer=200.0, imm_inner=200.0, imm_outer=400.0, caf_inner=200.0, caf_outer=400.0),
+    (label="c4_immune-stroma_tumor", tum_inner=200.0, tum_outer=400.0, imm_inner=  0.0, imm_outer=200.0, caf_inner=  0.0, caf_outer=200.0),
+    (label="c5_immune_tumor-stroma", tum_inner=200.0, tum_outer=400.0, imm_inner=  0.0, imm_outer=200.0, caf_inner=200.0, caf_outer=400.0),
+    (label="c6_stroma_tumor-immune", tum_inner=200.0, tum_outer=400.0, imm_inner=200.0, imm_outer=400.0, caf_inner=  0.0, caf_outer=200.0),
 ]
 
 # Build every (sample, geometry) monad up front (no jobs submitted yet), then

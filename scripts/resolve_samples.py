@@ -327,10 +327,13 @@ def resolve(base, cohorts=None):
 #: Compartments the geometry annuli are defined over. Confirmed against the
 #: imm/caf/tum fields in run_htan_geometries.jl; everything unlisted is tumour.
 COMPARTMENT = {
-    "CAF": "caf", "apCAF": "caf",
+    "CAF": "stroma", "apCAF": "stroma",
     "CD4_Tcell": "immune", "CD8_Tcell": "immune",
     "Treg": "immune", "CD8_exhausted": "immune",
 }
+#: The order compartments are named in within a ring, as in the labels of
+#: run_htan_geometries.jl.
+COMPARTMENT_ORDER = ["tumor", "immune", "stroma"]
 
 
 def _uniform_starting_ecm(base, sims):
@@ -385,9 +388,9 @@ def sim_type(base):
 def geometries(base):
     """variation id -> annulus layout, read from the radii rather than a label.
 
-    Compartments run centre outward: "-" joins those sharing a ring, "_"
-    separates rings. Derived from the data, so a new arrangement would be
-    described correctly rather than mislabelled.
+    Compartments run centre outward: "-" joins those sharing a ring, in the
+    order tumor, immune, stroma; "_" separates rings. Derived from the data, so
+    a new arrangement would be described correctly rather than mislabelled.
     """
     base = Path(base)
     for db in (base / "data" / "inputs" / "ics" / "cells").glob("*/ic_cell_variations.db"):
@@ -407,8 +410,10 @@ def geometries(base):
             for name, cols in radii.items():
                 key = (row[cols["in"]], row[cols["out"]])
                 rings.setdefault(key, set()).add(COMPARTMENT.get(name, "tumor"))
-            out[int(vid)] = "_".join("-".join(sorted(c))
-                                     for _, c in sorted(rings.items()))
+            out[int(vid)] = "_".join(
+                "-".join(sorted(c, key=COMPARTMENT_ORDER.index))
+                for _, c in sorted(rings.items())
+            )
         return out
     return {}
 
